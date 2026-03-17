@@ -1,62 +1,5 @@
 import { safe } from './helpers';
 
-// A4 dimensions at 96 DPI
-const A4_W_PX   = 794;
-const A4_H_PX   = 1122;
-const MARGIN_PX = 36;
-const PAGE_H    = A4_H_PX - MARGIN_PX * 2; // ~1050px usable per page
-
-// PDF output (mm)
-const PDF_W_MM     = 210;
-const MARGIN_MM    = 8;
-const CONTENT_W_MM = PDF_W_MM - MARGIN_MM * 2; // 194mm
-
-/**
- * Smart page builder:
- * Groups sections so each page is filled from top.
- * NO blank spaces at top of pages.
- * Sections are never split mid-content.
- */
-function buildPages(sections) {
-  const pages = [];
-  let pageStartY = 0;
-  let pageUsedH  = 0;
-  let pageEndY   = 0;
-
-  sections.forEach(sec => {
-    if (sec.height > PAGE_H) {
-      // Section taller than a full page — close current, then multi-page split
-      if (pageUsedH > 0) {
-        pages.push({ start: pageStartY, end: pageEndY });
-        pageUsedH = 0;
-      }
-      let y = sec.top;
-      while (y < sec.bottom) {
-        const end = Math.min(y + PAGE_H, sec.bottom);
-        pages.push({ start: y, end });
-        y = end;
-      }
-      pageStartY = sec.bottom;
-      pageEndY   = sec.bottom;
-      pageUsedH  = 0;
-    } else if (pageUsedH > 0 && pageUsedH + sec.height > PAGE_H) {
-      // Doesn't fit — close current page, start fresh
-      pages.push({ start: pageStartY, end: pageEndY });
-      pageStartY = sec.top;
-      pageEndY   = sec.bottom;
-      pageUsedH  = sec.height;
-    } else {
-      // Fits on current page
-      if (pageUsedH === 0) pageStartY = sec.top;
-      pageEndY  = sec.bottom;
-      pageUsedH += sec.height;
-    }
-  });
-
-  if (pageUsedH > 0) pages.push({ start: pageStartY, end: pageEndY });
-  return pages;
-}
-
 export async function exportToPDF(elementId, D) {
   const element = document.getElementById(elementId);
   if (!element) { alert('Proposal document not found.'); return; }
@@ -65,67 +8,112 @@ export async function exportToPDF(elementId, D) {
   const { jsPDF }                = await import('jspdf');
 
   const filename = safe(`${D.refno || 'Proposal'} – ${D.cust || 'Customer'}`);
-  const SCALE    = 2.5;
 
-  /* ── 1. Build isolated rendering container ── */
+  // ── Constants ──────────────────────────────────────────────
+  const RENDER_W  = 794;    // px – document render width
+  const SCALE     = 2;      // canvas scale factor
+  const MM_W      = 210;    // A4 width mm
+  const MM_H      = 297;    // A4 height mm
+  const MARGIN    = 8;      // mm page margin
+  const CW        = MM_W - MARGIN * 2;  // 194mm content width
+  const CH        = MM_H - MARGIN * 2;  // 281mm content height
+
+  // ── 1. Build isolated off-screen render container ──────────
   const container = document.createElement('div');
   container.style.cssText = [
-    'position:fixed', 'top:-99999px', 'left:0',
-    `width:${A4_W_PX}px`, 'background:#fff', 'z-index:-9999',
+    'position:fixed', 'top:-9999px', 'left:0',
+    `width:${RENDER_W}px`, 'background:#fff', 'z-index:-9999',
   ].join(';');
 
   const clone = element.cloneNode(true);
-  clone.style.width = A4_W_PX + 'px';
+  clone.style.width = RENDER_W + 'px';
 
-  // Force colour-exact rendering (dark backgrounds, gradients)
-  const printStyle = document.createElement('style');
-  printStyle.textContent = `
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
-    }
-    /* Remove box-shadows for cleaner PDF */
-    .qd { box-shadow: none !important; }
+  const pStyle = document.createElement('style');
+  pStyle.textContent = `
+    * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; color-adjust:exact!important; }
+    .qd { box-shadow:none!important; }
   `;
-  clone.prepend(printStyle);
+  clone.prepend(pStyle);
   container.appendChild(clone);
   document.body.appendChild(container);
 
-  // Wait for layout & fonts
+  // Wait for fonts + layout
   await document.fonts.ready;
   await new Promise(r => requestAnimationFrame(r));
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 600));
 
-  /* ── 2. Measure section positions (relative to container top) ── */
-  const containerRect = container.getBoundingClientRect();
-  const sectionEls    = Array.from(clone.querySelectorAll('.qcov, .qs, .sig, .qfoot'));
+  const totalDocH = container.scrollHeight;
 
-  const sections = sectionEls.map(el => {
+  // ── 2. Measure section HEADER positions for smart breaks ──
+  // We detect .qsh (section number+title) and .qcov so we never
+  // cut a page right through a section heading.
+  const containerTop = container.getBoundingClientRect().top;
+
+  const headerPositions = Array.from(
+    clone.querySelectorAll('.qsh, .qcov')
+  ).map(el => {
     const r = el.getBoundingClientRect();
-    const top    = r.top    - containerRect.top;
-    const height = r.height;
-    return { top, height, bottom: top + height };
-  }).filter(s => s.height > 0);
+    // Position in document pixels (relative to container top)
+    return (r.top - containerTop);
+  }).filter(pos => pos > 10);   // ignore the very first element
 
-  /* ── 3. Render full document to one canvas ── */
-  const fullCanvas = await html2canvas(container, {
-    scale:       SCALE,
-    width:       A4_W_PX,
-    height:      container.scrollHeight,
+  // ── 3. Render full document canvas ────────────────────────
+  const canvas = await html2canvas(container, {
+    scale:           SCALE,
+    width:           RENDER_W,
+    height:          totalDocH,
     backgroundColor: '#ffffff',
-    useCORS:     true,
-    logging:     false,
-    allowTaint:  true,
-    windowWidth: A4_W_PX,
+    useCORS:         true,
+    logging:         false,
+    allowTaint:      true,
+    windowWidth:     RENDER_W,
+    scrollX:         0,
+    scrollY:         -window.scrollY,
   });
 
   document.body.removeChild(container);
 
-  /* ── 4. Group sections into pages ── */
-  const pages = buildPages(sections);
+  // ── 4. Calculate A4 page height in canvas pixels ──────────
+  // CW mm → RENDER_W * SCALE px, so:  1 mm = (RENDER_W * SCALE) / CW px
+  const pxPerMM  = (RENDER_W * SCALE) / CW;
+  const pageH_px = Math.floor(CH * pxPerMM);   // canvas px per page
 
-  /* ── 5. Build PDF — slice canvas per page ── */
+  // ── 5. Smart page breaks ───────────────────────────────────
+  // Strategy: use fixed page-height slices BUT if a section header
+  // falls within the bottom 18% of a page, push the break to just
+  // BEFORE that header (so the header starts fresh on the next page).
+  // This eliminates blank spaces while keeping headings intact.
+
+  function calcBreaks(canvasH, pgH, docHeaders, docScale) {
+    const breaks = [0];
+    let pos = 0;
+
+    while (pos + pgH < canvasH) {
+      let breakAt = pos + pgH;
+      const threshold = pos + pgH * 0.82;  // last 18% of page
+
+      // Find header that lands in the danger zone
+      for (const hPos of docHeaders) {
+        const hCanvasPos = hPos * docScale;  // convert to canvas px
+        if (hCanvasPos >= threshold && hCanvasPos < pos + pgH) {
+          // This header would appear in the last 18% – push it to next page
+          breakAt = Math.max(pos + pgH * 0.5, hCanvasPos - 4 * docScale);
+          break;
+        }
+      }
+
+      if (breakAt <= pos) breakAt = pos + pgH;
+      breaks.push(Math.floor(breakAt));
+      pos = Math.floor(breakAt);
+    }
+
+    breaks.push(canvasH);
+    return breaks;
+  }
+
+  const breaks = calcBreaks(canvas.height, pageH_px, headerPositions, SCALE);
+
+  // ── 6. Build PDF ───────────────────────────────────────────
   const pdf = new jsPDF({
     unit:        'mm',
     format:      'a4',
@@ -133,31 +121,29 @@ export async function exportToPDF(elementId, D) {
     compress:    true,
   });
 
-  for (let i = 0; i < pages.length; i++) {
+  for (let i = 0; i < breaks.length - 1; i++) {
     if (i > 0) pdf.addPage();
 
-    const pg   = pages[i];
-    const srcY = Math.max(0, Math.floor(pg.start * SCALE));
-    const srcH = Math.min(
-      Math.ceil((pg.end - pg.start) * SCALE),
-      fullCanvas.height - srcY
-    );
-
+    const srcY  = breaks[i];
+    const srcH  = Math.min(breaks[i + 1] - srcY, canvas.height - srcY);
     if (srcH <= 0) continue;
 
-    // Crop canvas slice for this page
-    const pageCanvas          = document.createElement('canvas');
-    pageCanvas.width          = fullCanvas.width;
-    pageCanvas.height         = srcH;
-    const ctx                 = pageCanvas.getContext('2d');
-    ctx.fillStyle             = '#ffffff';
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-    ctx.drawImage(fullCanvas, 0, srcY, fullCanvas.width, srcH, 0, 0, fullCanvas.width, srcH);
+    // Slice canvas
+    const pc  = document.createElement('canvas');
+    pc.width  = canvas.width;
+    pc.height = srcH;
+    const ctx = pc.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, pc.width, srcH);
+    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
 
-    const imgData   = pageCanvas.toDataURL('image/jpeg', 0.95);
-    const imgH_MM   = (srcH / fullCanvas.width) * CONTENT_W_MM;
-
-    pdf.addImage(imgData, 'JPEG', MARGIN_MM, MARGIN_MM, CONTENT_W_MM, imgH_MM);
+    const imgH_mm = (srcH / (RENDER_W * SCALE)) * CW;
+    pdf.addImage(
+      pc.toDataURL('image/jpeg', 0.93),
+      'JPEG',
+      MARGIN, MARGIN,
+      CW, imgH_mm
+    );
   }
 
   pdf.save(filename + '.pdf');
