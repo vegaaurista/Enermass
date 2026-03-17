@@ -6,36 +6,8 @@ export async function exportToPDF(elementId, D) {
 
   const filename = safe(`${D.refno || 'Proposal'} – ${D.cust || 'Customer'}`);
 
-  const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-    .map(el => el.outerHTML).join('\n');
-
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  ${styles}
-  <style>
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    body { margin: 0; padding: 0; background: white; }
-    .qdw { width: 100% !important; max-width: 100% !important; }
-    .qd  { box-shadow: none !important; border-radius: 0 !important; }
-    .qs  { page-break-inside: avoid; break-inside: avoid; }
-    .qs[data-sec="bom"], .qs[data-sec="tnc"], .qs[data-sec="financial"] {
-      page-break-inside: auto; break-inside: auto;
-    }
-    .qsh { page-break-after: avoid; break-after: avoid; }
-    tr   { page-break-inside: avoid; break-inside: avoid; }
-    thead { display: table-header-group; }
-    .sig, .qfoot { page-break-inside: avoid; break-inside: avoid; }
-    .scards, .fcards, .pgrid, .cgrid, .sub-hero, .tgrid, .sub-grid {
-      page-break-inside: avoid; break-inside: avoid;
-    }
-  </style>
-</head>
-<body>
-  <div class="qd">${element.innerHTML}</div>
-</body>
-</html>`;
+  // Send ONLY the inner HTML — CSS is handled by server via page.addStyleTag()
+  const html = element.innerHTML;
 
   try {
     const response = await fetch('http://localhost:3001/generate-pdf', {
@@ -44,17 +16,23 @@ export async function exportToPDF(elementId, D) {
       body:    JSON.stringify({ html, filename }),
     });
 
-    if (!response.ok) throw new Error('Server error');
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Server error ' + response.status);
+    }
 
     const blob = await response.blob();
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
     a.download = filename + '.pdf';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
   } catch (e) {
-    alert('❌ PDF server not running!\n\nPlease:\n1. Open a new terminal\n2. Go to D:\\ENERMASS SOFT\\pdf-server\n3. Run: node server.js\n4. Then try downloading again.');
+    console.error(e);
+    alert('❌ PDF server not running!\n\nPlease:\n1. Open a new terminal\n2. cd "D:\\ENERMASS SOFT\\solar-epc-pro\\pdf-server"\n3. Run: node server.js\n4. Try again');
   }
 }
