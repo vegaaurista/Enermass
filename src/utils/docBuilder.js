@@ -216,7 +216,7 @@ export function buildDoc(D) {
           <div class="tr2"><span>Nodal Agency</span><span class="rate" style="font-size:.62rem">${sd.agency}</span></div>
           <div class="tr2"><span>Net Metering Limit</span><span class="rate">${sd.netMeteringLimit}</span></div>
           <div class="tr2"><span>Connection Time</span><span class="rate">${sd.connTime}</span></div>
-          <div class="tr2"><span>Settlement</span><span class="rate" style="font-size:.6rem">${sd.nmSettle}</span></div>
+          <div class="tr2" style="flex-wrap:wrap;gap:2px"><span>Settlement</span><span class="rate" style="font-size:.58rem;text-align:right;max-width:160px;word-break:break-word;white-space:normal">${sd.nmSettle}</span></div>
           <div class="tr2"><span>Export Tariff (APPC)</span><span class="rate" style="color:#2d8c5a">₹${D.exportRate}/unit</span></div>
         </div>
         <div class="tcard">
