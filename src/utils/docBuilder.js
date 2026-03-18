@@ -1,250 +1,323 @@
 import { inr, fmtN, mGen, aGen, bomQty, numberToIndianCurrencyWords } from './helpers';
 import { SD, DEFAULT_BRANCHES } from '../data/defaults';
 
-/* ─── PROFESSIONAL SOLAR PROPOSAL — DESIGN SYSTEM ────────────────────
-   Philosophy: Clean, confident, data-forward. Think McKinsey meets Tesla.
-   - Deep navy authority + warm gold accent + clean white space
-   - Strong typographic hierarchy — no decoration for its own sake
-   - Every element earns its place on the page
-   ─────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   PROFESSIONAL SOLAR EPC PROPOSAL — v4
+   Structure:
+     01 Cover Page          07 Environmental Impact
+     02 Executive Summary   08 Govt Subsidy & Incentives
+     03 Company Profile     09 Net Metering & Grid
+     04 Project Overview    10 Execution Timeline
+     05 Technical Specs/BOM 11 Terms & Conditions
+     06 Financial Analysis  12 Why Solar / Contact
+   ═══════════════════════════════════════════════════════════════════ */
 
+// ── Design tokens ───────────────────────────────────────────────────
 const C = {
-  navy:   '#0A1F3C',   navyM: '#0F2D56',   navyL: '#1A3D6B',
-  gold:   '#C9940A',   goldL: '#F5E9C8',   goldB: '#E8AB1A',
-  teal:   '#0B8C74',   tealL: '#D4F0EB',
-  green:  '#1A7A42',   greenL:'#D5EFDF',
-  blue:   '#1458A6',   blueL: '#D8E8F8',
-  red:    '#B91C1C',
-  bg:     '#F6F8FB',   bg2:   '#ECEEF2',
-  border: '#D1D9E6',
-  t1:     '#0A1520',   t2:    '#2E3D52',   t3:    '#64748B',
-  white:  '#FFFFFF',
+  nv:  '#0A1F3C',  nv2: '#0F2D56',  nv3: '#1A3D6B',
+  gd:  '#C9940A',  gd2: '#E8AB1A',  gdL: '#FEF9EC',  gdD: '#7A5700',
+  tl:  '#0B8C74',  tlL: '#D4F0EB',
+  gr:  '#1A7A42',  grL: '#D5EFDF',
+  bl:  '#1458A6',  blL: '#D8E8F8',
+  or:  '#D4580A',  orL: '#FDE8DC',
+  bg:  '#F5F7FB',  bg2: '#ECEEF4',
+  bd:  '#D1D9E6',  bd2: '#E8EDF5',
+  t1:  '#0A1520',  t2:  '#2E3D52',  t3:  '#64748B',  t4: '#94A3B8',
+  wh:  '#FFFFFF',
 };
-
-// Inline style builder
 const $ = o => Object.entries(o).map(([k,v])=>`${k}:${v}`).join(';');
 
-// ─── ATOM COMPONENTS ─────────────────────────────────────────────────
+// ── Atom helpers ─────────────────────────────────────────────────────
 
-// Section heading with number badge + line
-const SH = (n,t,accent=C.gold) => `
-<div style="${$({display:'flex','align-items':'center',gap:'12px','margin-bottom':'22px','padding-bottom':'14px','border-bottom':`2px solid ${C.border}`})}">
-  <div style="${$({width:'32px',height:'32px','border-radius':'8px',background:C.navy,display:'flex','align-items':'center','justify-content':'center','flex-shrink':'0'})}">
-    <span style="${$({'font-size':'9px','font-weight':'700',color:accent,'letter-spacing':'0','font-family':'Arial, sans-serif'})}">${n}</span>
+// Solid section divider badge + title + gradient rule
+const SEC = (n, title, accent=C.gd) => `
+<div style="${$({display:'flex','align-items':'center',gap:'13px','margin-bottom':'22px','padding-bottom':'13px','border-bottom':`2px solid ${C.bd}`})}">
+  <div style="${$({width:'34px',height:'34px','border-radius':'8px',background:C.nv,display:'flex','align-items':'center','justify-content':'center','flex-shrink':'0','box-shadow':`0 3px 10px rgba(10,31,60,.3)`})}">
+    <span style="${$({'font-size':'9.5px','font-weight':'700',color:accent,'font-family':'Arial,sans-serif'})}">${n}</span>
   </div>
-  <span style="${$({'font-size':'15px','font-weight':'700',color:C.navy,'letter-spacing':'-0.3px','font-family':'Georgia, serif'})}">${t}</span>
-  <div style="${$({flex:'1',height:'1px',background:`linear-gradient(to right,${accent}80,transparent)`,'margin-left':'8px'})}"></div>
+  <div style="${$({'font-size':'15px','font-weight':'700',color:C.nv,'letter-spacing':'-0.3px','font-family':'Georgia,serif'})}">${title}</div>
+  <div style="${$({flex:'1',height:'2px',background:`linear-gradient(to right,${accent}70,transparent)`,'margin-left':'6px'})}"></div>
 </div>`;
 
-// KPI stat box — fixed function signature
-const KPI = (val, unit, label, accent=C.navy) => `
-<div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'10px',padding:'16px 12px','text-align':'center','border-top':`3px solid ${accent}`})}">
-  <div style="${$({'font-size':'18px','font-weight':'700',color:accent,'line-height':'1','margin-bottom':'4px','font-family':'Arial, sans-serif'})}">${val}</div>
-  <div style="${$({'font-size':'8px',color:C.t3,'text-transform':'uppercase','letter-spacing':'0.8px','margin-bottom':'6px','font-family':'Arial, sans-serif'})}">${unit}</div>
-  <div style="${$({'font-size':'10px',color:C.t2,'font-weight':'600','font-family':'Arial, sans-serif'})}">${label}</div>
+// KPI metric card
+const KPI = (v,u,l,a=C.nv) => `
+<div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'16px 12px','text-align':'center','border-top':`4px solid ${a}`})}">
+  <div style="${$({'font-size':'20px','font-weight':'700',color:a,'line-height':'1.1','margin-bottom':'3px','font-family':'Georgia,serif'})}">${v}</div>
+  <div style="${$({'font-size':'7.5px',color:C.t3,'text-transform':'uppercase','letter-spacing':'.8px','margin-bottom':'5px'})}">${u}</div>
+  <div style="${$({'font-size':'10.5px',color:C.t2,'font-weight':'600','line-height':'1.3'})}">${l}</div>
 </div>`;
 
-// Info pair row
-const IR = (lbl, val, last=false) => `
-<div style="${$({display:'flex','justify-content':'space-between','align-items':'flex-start',padding:'7px 0','border-bottom':last?'none':`1px solid ${C.border}`,gap:'8px'})}">
-  <span style="${$({'font-size':'10px',color:C.t3,'min-width':'130px','flex-shrink':'0','font-family':'Arial, sans-serif'})}">${lbl}</span>
-  <span style="${$({'font-size':'10.5px',color:C.t1,'font-weight':'600','text-align':'right','line-height':'1.4','font-family':'Arial, sans-serif'})}">${val}</span>
+// Info row pair
+const IR = (l,v,last=false) => `
+<div style="${$({display:'flex','justify-content':'space-between','align-items':'flex-start',padding:'7px 0','border-bottom':last?'none':`1px solid ${C.bd}`,gap:'8px'})}">
+  <span style="${$({'font-size':'10px',color:C.t3,'flex-shrink':'0','min-width':'135px'})}">${l}</span>
+  <span style="${$({'font-size':'10.5px',color:C.t1,'font-weight':'600','text-align':'right','line-height':'1.45','flex':'1'})}">${v}</span>
 </div>`;
 
-// ─── PAGE FOOTER (injected on every page via server footerTemplate) ──
-// Footer is handled by Puppeteer — see server.js
+// Dark row inside navy box
+const DR = (l,v,dim=false,accent='') => `
+<div style="${$({display:'flex','justify-content':'space-between','align-items':'center','padding':'9px 0'})}">
+  <span style="${$({'font-size':'10.5px',color:dim?'rgba(255,255,255,.5)':accent||'rgba(255,255,255,.82)','font-family':'Arial,sans-serif'})}">${l}</span>
+  <span style="${$({'font-size':'11px','font-weight':'600',color:accent||C.wh,'font-family':'Arial,sans-serif'})}">${v}</span>
+</div>
+<div style="height:1px;background:rgba(255,255,255,.07)"></div>`;
+
+// Icon stat block (used in env section etc)
+const ISTAT = (icon,val,label,color=C.nv) => `
+<div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'12px',padding:'16px 14px','text-align':'center'})}">
+  <div style="${$({'font-size':'28px','margin-bottom':'8px','line-height':'1'})}">${icon}</div>
+  <div style="${$({'font-size':'18px','font-weight':'700',color,margin:'0 0 4px','font-family':'Georgia,serif'})}">${val}</div>
+  <div style="${$({'font-size':'9px',color:C.t3,'text-transform':'uppercase','letter-spacing':'.7px'})}">${label}</div>
+</div>`;
 
 export function buildDoc(D) {
   const sd  = D.sd || SD[D.state];
   const co  = D.co || {};
   const fromAddr = (co.branches||{})[D.state] || DEFAULT_BRANCHES[D.state] || co.addr || '';
-  const addrLine = fromAddr ? fromAddr.replace(/\n/g,' · ') : (co.addr||'').replace(/\n/g,' · ');
-  const sysLabel = D.stype === 'hybrid'
+  const addrLine = fromAddr.replace(/\n/g,' · ');
+  const sysLabel = D.stype==='hybrid'
     ? 'Hybrid Solar Power Plant (Grid-Tied + Battery Backup)'
     : 'Grid-Connected Rooftop Solar Power Plant (Net Metering)';
-
   const logoHTML = co.logo
-    ? `<img src="${co.logo}" style="height:50px;max-width:160px;object-fit:contain;display:block" alt="${co.name||''}" crossorigin="anonymous">`
+    ? `<img src="${co.logo}" style="height:52px;max-width:165px;object-fit:contain;display:block" alt="${co.name||''}" crossorigin="anonymous">`
     : '';
 
-  // ── BOM ────────────────────────────────────────────────────────────
+  // ── Derived values ────────────────────────────────────────────────
+  const annGen     = aGen(D.cap);
+  const co2PerKwh  = 0.72; // kg CO2 per kWh (India grid emission factor)
+  const co2Annual  = Math.round(annGen * co2PerKwh / 1000 * 10) / 10; // tonnes/yr
+  const co2Life    = Math.round(co2Annual * 25);
+  const treesAnnual= Math.round(co2Annual * 1000 / 21); // 21kg CO2 per tree/yr
+  const treesLife  = Math.round(co2Life * 1000 / 21);
+  const unitsYear  = Math.round(annGen);
+
+  // ── BOM ──────────────────────────────────────────────────────────
   let bomHTML='', lastCat='', sn=0;
   (D.bom||[]).filter(x=>x.sys==='all'||x.sys===D.stype).forEach(item=>{
     if(item.cat!==lastCat){
-      bomHTML+=`<tr><td colspan="5" style="${$({background:C.navy,color:C.goldB,'font-size':'8.5px','font-weight':'700','text-transform':'uppercase','letter-spacing':'1.2px',padding:'7px 14px'})}">  ${item.cat}</td></tr>`;
+      bomHTML+=`<tr><td colspan="5" style="${$({background:C.nv,color:C.gd2,'font-size':'8px','font-weight':'700','text-transform':'uppercase','letter-spacing':'1.2px',padding:'7px 14px'})}">${item.cat}</td></tr>`;
       lastCat=item.cat;
     }
     sn++;
-    const qty=bomQty(item,D), bg=sn%2===0?C.bg:C.white;
+    const qty=bomQty(item,D), bg=sn%2===0?C.bg:C.wh;
     bomHTML+=`<tr style="background:${bg}">
-      <td style="${$({padding:'8px 10px','text-align':'center',color:C.t3,'font-size':'9px','border-bottom':`1px solid ${C.border}`})}">${String(sn).padStart(2,'0')}</td>
-      <td style="${$({padding:'8px 12px','font-weight':'600',color:C.t1,'font-size':'10px','border-bottom':`1px solid ${C.border}`,'line-height':'1.4'})}">${item.desc}</td>
-      <td style="${$({padding:'8px 12px','font-size':'9.5px',color:C.t2,'border-bottom':`1px solid ${C.border}`,'line-height':'1.5'})}">${item.spec}</td>
-      <td style="${$({padding:'8px 10px','text-align':'center','font-weight':'700',color:C.navy,'font-size':'10px','border-bottom':`1px solid ${C.border}`})}">${qty}</td>
-      <td style="${$({padding:'8px 10px','text-align':'center',color:C.t3,'font-size':'9.5px','border-bottom':`1px solid ${C.border}`})}">${item.unit}</td>
+      <td style="${$({padding:'8px 10px','text-align':'center',color:C.t4,'font-size':'9px','border-bottom':`1px solid ${C.bd}`})}">${String(sn).padStart(2,'0')}</td>
+      <td style="${$({padding:'8px 12px','font-weight':'600',color:C.t1,'font-size':'10px','border-bottom':`1px solid ${C.bd}`,'line-height':'1.4'})}">${item.desc}</td>
+      <td style="${$({padding:'8px 12px','font-size':'9.5px',color:C.t2,'border-bottom':`1px solid ${C.bd}`,'line-height':'1.5'})}">${item.spec}</td>
+      <td style="${$({padding:'8px 10px','text-align':'center','font-weight':'700',color:C.nv,'font-size':'10.5px','border-bottom':`1px solid ${C.bd}`})}">${qty}</td>
+      <td style="${$({padding:'8px 10px','text-align':'center',color:C.t3,'font-size':'9.5px','border-bottom':`1px solid ${C.bd}`})}">${item.unit}</td>
     </tr>`;
   });
 
-  // ── Financial rows ─────────────────────────────────────────────────
+  // ── Financial projection ───────────────────────────────────────────
   let finRows='', cum=0;
   for(let y=1;y<=10;y++){
     const yb=D.annBen*Math.pow(1+(sd.tariffEsc/100),y-1)*Math.pow(0.995,y);
-    cum+=yb; const net=cum-D.commit, bg=y%2===0?C.bg:C.white;
+    cum+=yb; const net=cum-D.commit, bg=y%2===0?C.bg:C.wh;
     finRows+=`<tr style="background:${bg}">
-      <td style="${$({padding:'8px 12px',color:C.t1,'font-size':'10px','border-bottom':`1px solid ${C.border}`,'font-weight':'600'})}">Year ${y}</td>
-      <td style="${$({padding:'8px 12px','text-align':'right',color:C.t2,'font-size':'10px','border-bottom':`1px solid ${C.border}`})}">${fmtN(Math.round(D.agen*Math.pow(0.995,y)))} kWh</td>
-      <td style="${$({padding:'8px 12px','text-align':'right',color:C.t1,'font-size':'10px','border-bottom':`1px solid ${C.border}`,'font-weight':'600'})}">${inr(yb)}</td>
-      <td style="${$({padding:'8px 12px','text-align':'right',color:C.blue,'font-size':'10px','border-bottom':`1px solid ${C.border}`,'font-weight':'600'})}">${inr(cum)}</td>
-      <td style="${$({padding:'8px 12px','text-align':'right','font-size':'10px','border-bottom':`1px solid ${C.border}`,'font-weight':'700',color:net>0?C.green:C.t3})}">${net>0?inr(net):'—'}</td>
+      <td style="${$({padding:'8px 12px',color:C.t1,'font-size':'10.5px','border-bottom':`1px solid ${C.bd}`,'font-weight':'600'})}">Year ${y}</td>
+      <td style="${$({padding:'8px 12px','text-align':'right',color:C.t2,'font-size':'10px','border-bottom':`1px solid ${C.bd}`})}">${fmtN(Math.round(annGen*Math.pow(0.995,y)))} kWh</td>
+      <td style="${$({padding:'8px 12px','text-align':'right',color:C.t1,'font-size':'10px','border-bottom':`1px solid ${C.bd}`,'font-weight':'600'})}">${inr(yb)}</td>
+      <td style="${$({padding:'8px 12px','text-align':'right',color:C.bl,'font-size':'10px','border-bottom':`1px solid ${C.bd}`,'font-weight':'600'})}">${inr(cum)}</td>
+      <td style="${$({padding:'8px 12px','text-align':'right','font-size':'10px','border-bottom':`1px solid ${C.bd}`,'font-weight':'700',color:net>0?C.gr:C.t3})}">${net>0?inr(net):'—'}</td>
     </tr>`;
   }
 
-  // ── T&C ────────────────────────────────────────────────────────────
-  const tnc=D.tnc||{};
-  const tncRaw=[...(tnc.common||'').split('\n').filter(l=>l.trim()),...(tnc[D.state]||'').split('\n').filter(l=>l.trim())];
+  // ── T&C ──────────────────────────────────────────────────────────
+  const tnc    = D.tnc||{};
+  const tncRaw = [...(tnc.common||'').split('\n').filter(l=>l.trim()),...(tnc[D.state]||'').split('\n').filter(l=>l.trim())];
 
-  // ── Letter body ────────────────────────────────────────────────────
-  const ltrBody=D.lbody||`We, ${co.name||'Enermass Power Solutions Pvt. Ltd.'}, are pleased to present this comprehensive techno-commercial Solar Power Plant Proposal for your premises. This proposal has been prepared after careful analysis of your energy requirements, site conditions, and prevailing regulations under applicable state solar regulations.\n\nOur solution is engineered to significantly reduce your electricity bills, provide energy security, and ensure full compliance with the local DISCOM and the Ministry of New and Renewable Energy (MNRE), Government of India. The system is designed to maximise benefits under the PM Surya Ghar: Muft Bijli Yojana and applicable state incentives.\n\nEnermass Power Solutions Pvt. Ltd. brings extensive experience and hundreds of successful installations across India. Our qualified engineers and MNRE-empanelled technicians ensure a seamless end-to-end experience from system design to net metering connectivity.\n\nWe invite you to review this Solar Power Plant Proposal and look forward to the opportunity to serve you. Please feel free to contact us for any clarifications.`;
+  // ── Letter body ───────────────────────────────────────────────────
+  const ltrBody = D.lbody||`We, ${co.name||'Enermass Power Solutions Pvt. Ltd.'}, are pleased to present this comprehensive Techno-Commercial Solar Power Plant Proposal for your premises at ${D.site||D.billaddr||sd.name}.\n\nThis proposal has been prepared after careful analysis of your energy requirements, site conditions, and applicable state solar regulations. Our solution is engineered to significantly reduce your electricity bills, provide energy security, and ensure full compliance with MNRE and ${D.discom||sd.discom} requirements.\n\nWe design this system to maximise your benefits under the PM Surya Ghar: Muft Bijli Yojana and applicable state incentives. Our MNRE-empanelled team ensures a seamless end-to-end experience from system design to net metering commissioning.\n\nWe invite you to review this proposal and look forward to the opportunity to serve you.`;
 
-  // ── Incentives ─────────────────────────────────────────────────────
-  const incHTML=(sd.inc||[]).map((x,i,a)=>IR(x.i,`<span style="color:${C.teal};font-weight:700">${x.v}</span>`,i===a.length-1)).join('');
+  // ── Incentives ────────────────────────────────────────────────────
+  const incHTML = (sd.inc||[]).map((x,i,a)=>IR(x.i,`<span style="color:${C.tl};font-weight:700">${x.v}</span>`,i===a.length-1)).join('');
 
-  // ── Subsidy section ────────────────────────────────────────────────
+  // ── Cost data ─────────────────────────────────────────────────────
+  const plantNet   = D.price;
+  const addAmt     = D.addCostAmt||0;
+  const totalProj  = D.totalProj;
+  const taxableVal = D.taxableVal;
+  const totalGST   = D.totalGST;
+  const disc       = D.disc||0;
+  const totalSub   = D.subon?(D.tsub||0):0;
+  const custCommit = D.commit;
+
+  // ── Subsidy block ─────────────────────────────────────────────────
   const subSection = D.subon ? `
-<div style="${$({background:C.navy,'border-radius':'10px',padding:'18px 22px','margin-bottom':'14px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'14px'})}">
+<div style="${$({background:C.nv,'border-radius':'10px',padding:'18px 22px','margin-bottom':'14px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'14px'})}">
   <div>
-    <div style="${$({'font-size':'8px',color:'rgba(255,255,255,0.5)','text-transform':'uppercase','letter-spacing':'1.5px','margin-bottom':'6px'})}">Central Financial Assistance — MNRE</div>
-    <div style="${$({'font-size':'14px',color:C.white,'font-weight':'700','margin-bottom':'4px','font-family':'Georgia, serif'})}">PM Surya Ghar: Muft Bijli Yojana (CFA)</div>
-    <div style="${$({'font-size':'9px',color:'rgba(255,255,255,0.4)'})}">Formula: 30,000×min(S,2) + 18,000×max(0,min(S−2,1))</div>
+    <div style="${$({'font-size':'8px',color:'rgba(255,255,255,.45)','text-transform':'uppercase','letter-spacing':'1.5px','margin-bottom':'5px'})}">Central Financial Assistance — MNRE</div>
+    <div style="${$({'font-size':'15px',color:C.wh,'font-weight':'700','margin-bottom':'4px','font-family':'Georgia,serif'})}">PM Surya Ghar: Muft Bijli Yojana</div>
+    <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,.38)'})}">CFA = 30,000×min(S,2) + 18,000×max(0,min(S−2,1))</div>
   </div>
   <div style="text-align:right">
-    <div style="${$({'font-size':'24px',color:C.goldB,'font-weight':'700','font-family':'Arial, sans-serif'})}">${D.cfa>0?inr(D.cfa):'N/A'}</div>
-    <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,0.4)','margin-top':'3px'})}">${D.ptype==='Residential'?'CFA Applicable':'Not Applicable'}</div>
+    <div style="${$({'font-size':'26px',color:C.gd2,'font-weight':'700','font-family':'Georgia,serif'})}">${D.cfa>0?inr(D.cfa):'N/A'}</div>
+    <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,.4)','margin-top':'3px'})}">${D.ptype==='Residential'?'CFA Applicable':'Not Applicable'}</div>
   </div>
 </div>
 <div style="${$({display:'grid','grid-template-columns':'1fr 1fr',gap:'12px'})}">
-  <div style="${$({background:C.bg,'border-radius':'10px',padding:'16px',border:`1px solid ${C.border}`,'border-top':`3px solid ${C.gold}`})}">
+  <div style="${$({background:C.bg,'border-radius':'10px',padding:'16px',border:`1px solid ${C.bd}`,'border-top':`3px solid ${C.gd}`})}">
     <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'12px'})}">MNRE CFA Structure</div>
-    ${IR('Up to 2 kWp',`<span style="color:${C.gold};font-weight:700">₹30,000/kW</span>`)}
-    ${IR('2–3 kWp (incremental)',`<span style="color:${C.gold};font-weight:700">₹18,000/kW</span>`)}
-    ${IR('Max for individual',`<span style="color:${C.gold};font-weight:700">₹78,000</span>`)}
+    ${IR('Up to 2 kWp',`<span style="color:${C.gd};font-weight:700">₹30,000/kW</span>`)}
+    ${IR('2–3 kWp (incremental)',`<span style="color:${C.gd};font-weight:700">₹18,000/kW</span>`)}
+    ${IR('Max for Individual',`<span style="color:${C.gd};font-weight:700">₹78,000</span>`)}
     ${IR('System Size',`${D.cap} kWp`)}
     ${IR('Proposal Type',D.ptype,true)}
-    <div style="${$({'margin-top':'12px',padding:'10px 12px',background:C.goldL,'border-radius':'8px','border-left':`4px solid ${C.gold}`,display:'flex','justify-content':'space-between','align-items':'center'})}">
-      <span style="${$({'font-size':'10px','font-weight':'700',color:C.navy})}">CFA Subsidy</span>
-      <span style="${$({'font-size':'13px','font-weight':'700',color:C.gold})}">${D.cfa>0?inr(D.cfa):'Not Applicable'}</span>
+    <div style="${$({'margin-top':'12px',padding:'10px 12px',background:C.gdL,'border-radius':'8px','border-left':`4px solid ${C.gd}`,display:'flex','justify-content':'space-between','align-items':'center'})}">
+      <span style="${$({'font-size':'10.5px','font-weight':'700',color:C.nv})}">CFA Subsidy</span>
+      <span style="${$({'font-size':'14px','font-weight':'700',color:C.gd})}">${D.cfa>0?inr(D.cfa):'Not Applicable'}</span>
     </div>
   </div>
-  <div style="${$({background:C.bg,'border-radius':'10px',padding:'16px',border:`1px solid ${C.border}`,'border-top':`3px solid ${C.teal}`})}">
+  <div style="${$({background:C.bg,'border-radius':'10px',padding:'16px',border:`1px solid ${C.bd}`,'border-top':`3px solid ${C.tl}`})}">
     <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'10px'})}">${sd.name} — State Incentives</div>
-    <div style="${$({'font-size':'10px',color:C.t2,'margin-bottom':'10px','padding-bottom':'8px','border-bottom':`1px solid ${C.border}`})}"><strong>Nodal Agency:</strong> ${sd.agency}</div>
+    <div style="${$({'font-size':'10px',color:C.t2,'margin-bottom':'10px','padding-bottom':'8px','border-bottom':`1px solid ${C.bd}`})}"><strong>Nodal Agency:</strong> ${sd.agency}</div>
     ${incHTML}
-    ${D.ssub>0?`<div style="${$({'margin-top':'12px',padding:'10px 12px',background:C.tealL,'border-radius':'8px','border-left':`4px solid ${C.teal}`,display:'flex','justify-content':'space-between','align-items':'center'})}"><span style="${$({'font-size':'10px','font-weight':'700',color:C.navy})}">State Subsidy</span><span style="${$({'font-size':'13px','font-weight':'700',color:C.teal})}">${inr(D.ssub)}</span></div>`:''}
+    ${D.ssub>0?`<div style="${$({'margin-top':'12px',padding:'10px 12px',background:C.tlL,'border-radius':'8px','border-left':`4px solid ${C.tl}`,display:'flex','justify-content':'space-between','align-items':'center'})}"><span style="${$({'font-size':'10.5px','font-weight':'700',color:C.nv})}">State Subsidy</span><span style="${$({'font-size':'14px','font-weight':'700',color:C.tl})}">${inr(D.ssub)}</span></div>`:''}
   </div>
-</div>` : `<div style="${$({background:C.blueL,'border-left':`4px solid ${C.blue}`,'border-radius':'0 8px 8px 0',padding:'12px 16px','font-size':'11px',color:C.blue})}">Subsidy not applicable for this project type.</div>`;
+</div>` : `<div style="${$({background:C.blL,'border-left':`4px solid ${C.bl}`,'border-radius':'0 8px 8px 0',padding:'12px 16px','font-size':'10.5px',color:C.bl})}">Subsidy not applicable for this project category.</div>`;
 
-  // ── Cost data ──────────────────────────────────────────────────────
-  const plantNet    = D.price;             // net after discount
-  const addAmt      = D.addCostAmt || 0;
-  const totalProj   = D.totalProj;         // plant + add
-  const taxableVal  = D.taxableVal;
-  const totalGST    = D.totalGST;
-  const disc        = D.disc || 0;
-  const totalSub    = D.subon ? (D.tsub||0) : 0;
-  const custCommit  = D.commit;
-
-  // Dark cost row (white text)
-  const DR = (lbl, val, dim=false, accent='') => `
-<div style="${$({display:'flex','justify-content':'space-between','align-items':'center',padding:'9px 0'})}">
-  <span style="${$({'font-size':'10.5px',color:dim?'rgba(255,255,255,0.5)':accent||'rgba(255,255,255,0.85)'})}}">${lbl}</span>
-  <span style="${$({'font-size':'11px',color:accent||C.white,'font-weight':dim?'400':'600','font-family':'Arial, sans-serif'})}">${val}</span>
-</div>
-<div style="height:1px;background:rgba(255,255,255,0.07)"></div>`;
-
+  // ─────────────────────────────────────────────────────────────────
   return `
-<!-- ════════════════════════════════════════════════
-     COVER PAGE
-════════════════════════════════════════════════ -->
-<div style="${$({background:C.navy,position:'relative',overflow:'hidden','min-height':'320px'})}">
 
-  <!-- Subtle geometric accent -->
-  <div style="position:absolute;top:-80px;right:-80px;width:320px;height:320px;border-radius:50%;background:rgba(201,148,10,0.08);pointer-events:none"></div>
-  <div style="position:absolute;bottom:-60px;left:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none"></div>
-  <!-- Gold top line -->
-  <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,${C.gold},${C.goldB},rgba(201,148,10,0.1))"></div>
+<!-- ████████████████████████████████████████████████
+     01 — COVER PAGE
+████████████████████████████████████████████████ -->
+<div style="${$({background:C.nv,position:'relative',overflow:'hidden'})}">
 
-  <!-- Header: logo + company + ref box -->
-  <div style="${$({padding:'28px 44px 0',display:'flex','justify-content':'space-between','align-items':'flex-start',position:'relative','z-index':'1'})}">
-    <div style="${$({display:'flex','align-items':'flex-start',gap:'14px'})}">
-      ${logoHTML ? `<div style="flex-shrink:0">${logoHTML}</div>` : ''}
+  <!-- Radial accents -->
+  <div style="position:absolute;top:-100px;right:-100px;width:380px;height:380px;border-radius:50%;background:rgba(201,148,10,.09);pointer-events:none"></div>
+  <div style="position:absolute;bottom:-80px;left:-60px;width:300px;height:300px;border-radius:50%;background:rgba(20,88,166,.08);pointer-events:none"></div>
+  <!-- Gold top stripe -->
+  <div style="position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,${C.gd},${C.gd2},rgba(201,148,10,.15))"></div>
+
+  <!-- Top bar -->
+  <div style="${$({padding:'28px 46px 0',display:'flex','justify-content':'space-between','align-items':'flex-start',position:'relative','z-index':'1'})}">
+    <!-- Logo + company -->
+    <div style="${$({display:'flex','align-items':'center',gap:'16px'})}">
+      ${logoHTML?`<div style="flex-shrink:0">${logoHTML}</div>`:''}
       <div>
-        <div style="${$({'font-size':'16px',color:C.white,'font-weight':'700','letter-spacing':'-0.3px','line-height':'1.2','font-family':'Georgia, serif'})}">${co.name||'Enermass Power Solutions Pvt. Ltd.'}</div>
-        <div style="${$({'font-size':'8px',color:C.goldB,'letter-spacing':'2.5px','text-transform':'uppercase','margin-top':'5px','font-weight':'600'})}">${co.tag||'Integrated Solar & Power Engineering Solutions'}</div>
-        <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,0.3)','margin-top':'7px','line-height':'1.8'})}">
+        <div style="${$({'font-size':'17px',color:C.wh,'font-weight':'700','letter-spacing':'-0.4px','line-height':'1.2','font-family':'Georgia,serif'})}">${co.name||'Enermass Power Solutions Pvt. Ltd.'}</div>
+        <div style="${$({'font-size':'7.5px',color:C.gd2,'letter-spacing':'2.5px','text-transform':'uppercase','margin-top':'6px','font-weight':'600'})}">${co.tag||'Integrated Solar & Power Engineering Solutions'}</div>
+        <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,.28)','margin-top':'8px','line-height':'1.85'})}">
           ${addrLine}${addrLine?'<br>':''}${co.phone||''}${co.email?' &nbsp;·&nbsp; '+co.email:''}${co.web?' &nbsp;·&nbsp; '+co.web:''}
         </div>
       </div>
     </div>
-
-    <!-- Reference box: gold -->
-    <div style="${$({background:`linear-gradient(135deg,${C.gold},${C.goldB})`,'border-radius':'10px',padding:'14px 18px','text-align':'right','flex-shrink':'0','min-width':'155px','box-shadow':'0 8px 32px rgba(201,148,10,0.4)'})}">
-      <div style="${$({'font-size':'7px','font-weight':'700','text-transform':'uppercase','letter-spacing':'1.5px',color:C.navy,'opacity':'0.6','margin-bottom':'5px'})}">Proposal Ref.</div>
-      <div style="${$({'font-size':'11px','font-weight':'700',color:C.navy,'line-height':'1.3','letter-spacing':'-0.2px','font-family':'Arial, sans-serif'})}">${D.refno}</div>
-      <div style="${$({'font-size':'8.5px',color:C.navy,'margin-top':'8px','opacity':'0.65'})}">Date: ${D.qdateStr}</div>
-      <div style="${$({'font-size':'8.5px',color:C.navy,'opacity':'0.65','margin-top':'2px'})}">Valid: ${D.duedateStr}</div>
+    <!-- Ref box -->
+    <div style="${$({background:`linear-gradient(135deg,${C.gd},${C.gd2})`,'border-radius':'10px',padding:'14px 20px','text-align':'right','flex-shrink':'0','min-width':'168px','box-shadow':'0 8px 32px rgba(201,148,10,.38)'})}">
+      <div style="${$({'font-size':'7px','font-weight':'700','text-transform':'uppercase','letter-spacing':'1.5px',color:C.nv,'opacity':'.6','margin-bottom':'5px'})}">Proposal Ref.</div>
+      <div style="${$({'font-size':'11.5px','font-weight':'700',color:C.nv,'font-family':'Arial,sans-serif'})}">${D.refno}</div>
+      <div style="height:1px;background:rgba(10,31,60,.2);margin:8px 0 6px"></div>
+      <div style="${$({'font-size':'8.5px',color:C.nv,'opacity':'.65'})}">Date:&nbsp; ${D.qdateStr}</div>
+      <div style="${$({'font-size':'8.5px',color:C.nv,'opacity':'.65','margin-top':'2px'})}">Valid:&nbsp; ${D.duedateStr}</div>
     </div>
   </div>
 
-  <!-- Main hero content -->
-  <div style="${$({padding:'36px 44px 40px',position:'relative','z-index':'1'})}">
-    <div style="${$({'font-size':'8px',color:C.goldB,'letter-spacing':'3px','text-transform':'uppercase','font-weight':'600','margin-bottom':'14px','opacity':'0.85'})}">
+  <!-- Hero -->
+  <div style="${$({padding:'36px 46px 44px',position:'relative','z-index':'1'})}">
+    <div style="${$({'font-size':'8px',color:C.gd2,'letter-spacing':'3.2px','text-transform':'uppercase','font-weight':'600','margin-bottom':'14px','opacity':'.8'})}">
       Techno-Commercial Proposal &nbsp;·&nbsp; ${sd.name} &nbsp;·&nbsp; ${D.ptype}
     </div>
+    <div style="${$({'font-size':'42px',color:C.wh,'font-weight':'900','line-height':'.95','letter-spacing':'-1.5px','font-family':'Georgia,serif'})}">Solar Power</div>
+    <div style="${$({'font-size':'42px',color:C.gd2,'font-weight':'900','line-height':'.95','letter-spacing':'-1.5px','font-family':'Georgia,serif','margin-bottom':'14px'})}">Plant Proposal</div>
+    <div style="${$({'font-size':'11px',color:'rgba(255,255,255,.42)','line-height':'1.7','max-width':'480px','margin-bottom':'26px'})}">${sysLabel}</div>
 
-    <!-- BIG bold title -->
-    <div style="${$({'font-size':'38px',color:C.white,'font-weight':'900','line-height':'1.0','letter-spacing':'-1.5px','font-family':'Georgia, serif','margin-bottom':'0'})}">Solar Power</div>
-    <div style="${$({'font-size':'38px',color:C.goldB,'font-weight':'900','line-height':'1.0','letter-spacing':'-1.5px','font-family':'Georgia, serif','margin-bottom':'14px'})}">Plant Proposal</div>
+    <!-- Pills -->
+    <div style="${$({display:'flex',gap:'8px','flex-wrap':'wrap','margin-bottom':'30px'})}">
+      ${[`${D.cap} kWp`,sd.name,`${D.sal} ${D.cust}`,D.ptype,...(D.stype==='hybrid'?[`${D.bkwh} kWh Battery`]:[]),`Valid ${D.validity} Days`]
+        .map(t=>`<span style="${$({background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.18)',padding:'5px 14px','border-radius':'20px','font-size':'9px',color:'rgba(255,255,255,.9)',display:'inline-flex','align-items':'center',gap:'7px'})}"><span style="width:5px;height:5px;border-radius:50%;background:${C.gd2};display:inline-block;flex-shrink:0"></span>${t}</span>`).join('')}
+    </div>
 
-    <div style="${$({'font-size':'11px',color:'rgba(255,255,255,0.45)','max-width':'500px','line-height':'1.7','margin-bottom':'24px'})}">${sysLabel}</div>
-
-    <!-- Tags / pills -->
-    <div style="${$({display:'flex',gap:'8px','flex-wrap':'wrap'})}">
-      ${[`${D.cap} kWp System`, sd.name, `${D.sal} ${D.cust}`, D.ptype,
-         ...(D.stype==='hybrid'?[`${D.bkwh} kWh Battery`]:[]),
-         `Valid ${D.validity} Days`].map(t=>`
-        <div style="${$({background:'rgba(255,255,255,0.1)',border:'1px solid rgba(255,255,255,0.18)',padding:'5px 14px','border-radius':'20px','font-size':'9px',color:'rgba(255,255,255,0.9)',display:'inline-flex','align-items':'center',gap:'7px'})}">
-          <span style="width:5px;height:5px;border-radius:50%;background:${C.goldB};display:inline-block;flex-shrink:0"></span>${t}
-        </div>`).join('')}
+    <!-- Quick stats strip -->
+    <div style="${$({display:'grid','grid-template-columns':'repeat(4,1fr)',gap:'10px'})}">
+      ${[
+        [inr(D.annSave),  'Annual Savings',  C.gd],
+        [`${D.payback} yrs`,'Payback Period', C.tl],
+        [inr(D.cum25),    '25-Yr Returns',   C.bl],
+        [`${co2Annual}T`, 'CO₂ Saved/Year',  C.gr],
+      ].map(([v,l,c])=>`
+      <div style="${$({background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.14)','border-radius':'10px',padding:'12px 10px','text-align':'center'})}">
+        <div style="${$({'font-size':'16px','font-weight':'700',color:c,'font-family':'Georgia,serif'})}">${v}</div>
+        <div style="${$({'font-size':'8px',color:'rgba(255,255,255,.45)','text-transform':'uppercase','letter-spacing':'.6px','margin-top':'4px'})}">${l}</div>
+      </div>`).join('')}
     </div>
   </div>
 </div>
 
 
-<!-- ════════════════════════════════════════════════
+<!-- ████████████████████████████████████████████████
+     02 — EXECUTIVE SUMMARY
+████████████████████████████████████████████████ -->
+<div data-sec="exec" style="${$({padding:'30px 46px',background:C.wh,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('02','Executive Summary',C.gd)}
+
+  <!-- Opening paragraph -->
+  <div style="${$({background:C.bg,'border-radius':'10px',padding:'16px 20px','margin-bottom':'18px','border-left':`5px solid ${C.gd}`})}">
+    <p style="${$({'font-size':'11px',color:C.t2,'line-height':'1.85','margin':'0'})}">
+      This proposal presents a <strong>${D.cap} kWp ${D.stype==='hybrid'?'Hybrid':'On-Grid'} Solar Power Plant</strong> for
+      <strong>${D.sal} ${D.cust}</strong> at ${D.site||D.billaddr||sd.name}.
+      The system is designed to generate approximately <strong>${fmtN(Math.round(mGen(D.cap)))} kWh per month</strong>,
+      significantly offsetting electricity consumption of ${D.cons} kWh/month.
+      With a customer financial commitment of <strong>${inr(custCommit)}</strong> (after subsidy),
+      the project delivers a payback of <strong>${D.payback} years</strong> and a
+      25-year cumulative return of <strong>${inr(D.cum25)}</strong>.
+    </p>
+  </div>
+
+  <!-- 6 icon stat cards -->
+  <div style="${$({display:'grid','grid-template-columns':'repeat(3,1fr)',gap:'10px','margin-bottom':'16px'})}">
+    ${[
+      ['⚡',`${D.cap} kWp`,    'System Capacity',  C.nv],
+      ['💡',fmtN(Math.round(mGen(D.cap)))+' kWh','Monthly Generation',C.tl],
+      ['💰',inr(D.annSave),   'Annual Bill Savings',C.gr],
+      ['📈',inr(D.cum25),     '25-Year Returns',   C.bl],
+      ['⏱',`${D.payback} yrs`,'Simple Payback',   C.gd],
+      ['🌱',`${co2Annual}T/yr`,'CO₂ Reduction',    C.gr],
+    ].map(([ic,v,l,c])=>`
+    <div style="${$({background:C.bg,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'14px 16px',display:'flex','align-items':'center',gap:'12px'})}">
+      <div style="${$({width:'42px',height:'42px','border-radius':'10px',background:C.nv,display:'flex','align-items':'center','justify-content':'center','flex-shrink':'0','font-size':'18px'})}">${ic}</div>
+      <div>
+        <div style="${$({'font-size':'14px','font-weight':'700',color:c,'font-family':'Georgia,serif'})}">${v}</div>
+        <div style="${$({'font-size':'8.5px',color:C.t3,'margin-top':'2px'})}">${l}</div>
+      </div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Why choose Enermass (brief) -->
+  <div style="${$({background:C.nv,'border-radius':'10px',padding:'16px 22px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'12px'})}">
+    <span style="${$({'font-size':'10.5px',color:C.wh,'font-weight':'600','font-family':'Georgia,serif'})}">Why ${co.name||'Enermass'}?</span>
+    ${['MNRE Empanelled','ISO 9001:2015','500+ Projects','25-Yr Warranty','End-to-End EPC'].map(t=>`
+    <span style="${$({background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.15)',padding:'4px 12px','border-radius':'20px','font-size':'8.5px',color:'rgba(255,255,255,.85)'})}">✓ ${t}</span>`).join('')}
+  </div>
+</div>
+
+
+<!-- ████████████████████████████████████████████████
      01 — INTRODUCTION LETTER
-════════════════════════════════════════════════ -->
-<div data-sec="letter" style="${$({padding:'30px 44px',background:C.white,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('01','Introduction Letter',C.gold)}
-  <div style="${$({background:C.goldL,'border-left':`5px solid ${C.gold}`,'border-radius':'0 10px 10px 0',padding:'22px 26px'})}">
-    <div style="${$({'margin-bottom':'16px','font-size':'11px',color:C.t1,'line-height':'1.9'})}">
+████████████████████████████████████████████████ -->
+<div data-sec="letter" style="${$({padding:'30px 46px',background:C.bg,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('01','Introduction Letter',C.gd)}
+  <div style="${$({background:C.gdL,'border-left':`5px solid ${C.gd}`,'border-radius':'0 10px 10px 0',padding:'22px 28px'})}">
+    <div style="${$({'margin-bottom':'16px'})}">
       <div style="${$({'font-weight':'700','font-size':'11px',color:C.t1})}">To,</div>
-      <div style="${$({'margin-top':'4px',color:C.t2})}">${D.sal} ${D.cust}${D.billaddr?'<br>'+D.billaddr.replace(/\n/g,'<br>'):''}</div>
+      <div style="${$({'margin-top':'4px',color:C.t2,'font-size':'11px','line-height':'1.7'})}">${D.sal} ${D.cust}${D.billaddr?'<br>'+D.billaddr.replace(/\n/g,'<br>'):''}</div>
     </div>
-    <div style="${$({'font-size':'9.5px',color:C.t3,'margin-bottom':'16px','padding-bottom':'14px','border-bottom':`1px dashed ${C.border}`})}">
+    <div style="${$({'font-size':'9.5px',color:C.t3,'margin-bottom':'16px','padding-bottom':'13px','border-bottom':`1px dashed ${C.bd}`})}">
       Date: <strong style="color:${C.t1}">${D.qdateStr}</strong> &nbsp;|&nbsp;
       Ref: <strong style="color:${C.t1}">${D.refno}</strong> &nbsp;|&nbsp;
       Valid Until: <strong style="color:${C.t1}">${D.duedateStr}</strong>
     </div>
-    <div style="${$({'font-weight':'700','font-size':'11px',color:C.navy,'margin-bottom':'14px','font-family':'Georgia, serif'})}">
+    <div style="${$({'font-weight':'700','font-size':'11.5px',color:C.nv,'margin-bottom':'14px','font-family':'Georgia,serif'})}">
       Sub: Solar Power Plant Proposal — ${D.cap} kWp ${D.stype==='hybrid'?'Hybrid':'On-Grid'} System — ${sd.name}
     </div>
     <div style="${$({'font-weight':'700','margin-bottom':'14px','font-size':'11px',color:C.t1})}">Dear ${D.sal} ${(D.cust||'').split(' ')[0]||'Sir/Madam'},</div>
-    ${ltrBody.split('\n').filter(l=>l.trim()).map(p=>`<p style="${$({'margin-bottom':'12px','line-height':'1.85','font-size':'11px',color:C.t2})}">${p}</p>`).join('')}
-    <div style="${$({'margin-top':'26px','padding-top':'18px','border-top':`1px solid rgba(201,148,10,0.4)`})}">
+    ${ltrBody.split('\n').filter(l=>l.trim()).map(p=>`<p style="${$({'margin-bottom':'12px','line-height':'1.88','font-size':'11px',color:C.t2})}">${p}</p>`).join('')}
+    <div style="${$({'margin-top':'26px','padding-top':'18px','border-top':`1px solid rgba(201,148,10,.35)`})}">
       <div style="${$({'margin-bottom':'26px','font-size':'11px',color:C.t2})}">Yours faithfully,</div>
       ${co.sigImg?`<div style="margin-bottom:10px"><img src="${co.sigImg}" style="max-height:48px;width:auto;display:block" alt="Signature"></div>`:'<div style="height:44px"></div>'}
-      <div style="${$({display:'inline-block','border-top':`2px solid ${C.navy}`,'padding-top':'8px'})}">
-        <div style="${$({'font-weight':'700',color:C.navy,'font-size':'12px','font-family':'Georgia, serif'})}">Mr. Manoj M S</div>
+      <div style="${$({display:'inline-block','border-top':`2px solid ${C.nv}`,'padding-top':'8px'})}">
+        <div style="${$({'font-weight':'700',color:C.nv,'font-size':'12px','font-family':'Georgia,serif'})}">Mr. Manoj M S</div>
         <div style="${$({'font-size':'10px',color:C.t2,'margin-top':'2px'})}">Chief Executive Officer</div>
         <div style="${$({'font-size':'9.5px',color:C.t3,'margin-top':'2px'})}">${co.name||'Enermass Power Solutions Pvt. Ltd.'}</div>
       </div>
@@ -253,122 +326,123 @@ export function buildDoc(D) {
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     02 — COMPANY PROFILE
-════════════════════════════════════════════════ -->
-<div data-sec="company" style="${$({padding:'30px 44px',background:C.bg,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('02','Company Profile',C.teal)}
+<!-- ████████████████████████████████████████████████
+     03 — COMPANY PROFILE
+████████████████████████████████████████████████ -->
+<div data-sec="company" style="${$({padding:'30px 46px',background:C.wh,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('03','About the Company',C.tl)}
   <div style="${$({display:'grid','grid-template-columns':'1fr 1fr',gap:'8px','margin-bottom':'14px'})}">
-    ${[
-      ['Company',        co.name||'—'],
-      ['CIN / Reg. No.', co.cin||'—'],
-      ['GST Number',     co.gst||'—'],
-      ['PAN',            co.pan||'—'],
-      ['Phone',          co.phone||'—'],
-      ['Email',          co.email||'—'],
-      ['Website',        co.web||'—'],
-      ['Address',        (fromAddr||co.addr||'').replace(/\n/g,', ')],
-    ].map(([l,v])=>`
-    <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'8px',padding:'11px 14px'})}">
-      <div style="${$({'font-size':'7.5px',color:C.t3,'text-transform':'uppercase','letter-spacing':'0.8px','font-weight':'700','margin-bottom':'4px'})}">${l}</div>
+    ${[['Company',co.name||'—'],['CIN / Reg. No.',co.cin||'—'],['GST Number',co.gst||'—'],['PAN',co.pan||'—'],['Phone',co.phone||'—'],['Email',co.email||'—'],['Website',co.web||'—'],['Address',(fromAddr||co.addr||'').replace(/\n/g,', ')]].map(([l,v])=>`
+    <div style="${$({background:C.bg,border:`1px solid ${C.bd}`,'border-radius':'8px',padding:'11px 14px'})}">
+      <div style="${$({'font-size':'7.5px',color:C.t3,'text-transform':'uppercase','letter-spacing':'.8px','font-weight':'700','margin-bottom':'4px'})}">${l}</div>
       <div style="${$({'font-size':'11px',color:C.t1,'font-weight':'600','line-height':'1.45'})}">${v}</div>
     </div>`).join('')}
   </div>
-  <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'8px',padding:'14px 18px','margin-bottom':'14px'})}">
-    <div style="${$({'font-weight':'700',color:C.navy,'font-size':'11px','margin-bottom':'8px','font-family':'Georgia, serif'})}">Business Activities</div>
-    <div style="${$({'font-size':'10.5px',color:C.t2,'line-height':'1.8'})}">${co['cp-biz']||''}${co['cp-areas']?`<br><strong>Service Areas:</strong> ${co['cp-areas']}`:''}${co['cp-certs']?`<br><strong>Certifications:</strong> ${co['cp-certs']}`:''}${co['cp-notes']?`<br>${co['cp-notes']}`:''}</div>
+  <div style="${$({background:C.bg,border:`1px solid ${C.bd}`,'border-radius':'8px',padding:'14px 18px','margin-bottom':'14px'})}">
+    <div style="${$({'font-weight':'700',color:C.nv,'font-size':'11.5px','margin-bottom':'8px','font-family':'Georgia,serif'})}">Business Activities</div>
+    <div style="${$({'font-size':'10.5px',color:C.t2,'line-height':'1.8'})}">${co['cp-biz']||'Design, Supply, Installation, Testing & Commissioning of Grid-Tied, Hybrid & Off-Grid Solar Power Systems. Net Metering Facilitation & DISCOM Liaison.'}${co['cp-areas']?`<br><strong>Service Areas:</strong> ${co['cp-areas']}`:''}${co['cp-certs']?`<br><strong>Certifications:</strong> ${co['cp-certs']}`:''}${co['cp-notes']?`<br>${co['cp-notes']}`:''}</div>
   </div>
+  <!-- 3 stat bars -->
   <div style="${$({display:'grid','grid-template-columns':'repeat(3,1fr)',gap:'10px'})}">
-    ${[
-      [co['cp-exp']?.split(' ')[0]||'10+',  'Years',    'Experience',   C.gold],
-      [co['cp-proj']?.split(' ')[0]||'500+','Projects', 'Commissioned', C.teal],
-      [co['cp-mw']?.split(' ')[0]||'15',    'MW',       'Installed',    C.blue],
-    ].map(([v,u,l,c])=>`
-    <div style="${$({background:C.navy,'border-radius':'10px',padding:'18px 14px','text-align':'center'})}">
-      <div style="${$({'font-size':'24px',color:c,'font-weight':'700','line-height':'1','font-family':'Georgia, serif'})}">${v}</div>
-      <div style="${$({'font-size':'8px',color:'rgba(255,255,255,0.4)','text-transform':'uppercase','letter-spacing':'0.7px','margin-top':'3px'})}">${u}</div>
-      <div style="${$({'font-size':'10px',color:'rgba(255,255,255,0.65)','margin-top':'4px'})}">${l}</div>
+    ${[[co['cp-exp']?.split(' ')[0]||'10+','Years','Experience',C.gd],[co['cp-proj']?.split(' ')[0]||'500+','Projects','Commissioned',C.tl],[co['cp-mw']?.split(' ')[0]||'15','MW','Installed',C.bl]].map(([v,u,l,c])=>`
+    <div style="${$({background:C.nv,'border-radius':'10px',padding:'20px 14px','text-align':'center'})}">
+      <div style="${$({'font-size':'26px','font-weight':'700',color:c,'font-family':'Georgia,serif'})}">${v}</div>
+      <div style="${$({'font-size':'8px',color:'rgba(255,255,255,.4)','text-transform':'uppercase','letter-spacing':'.7px','margin-top':'3px'})}">${u}</div>
+      <div style="${$({'font-size':'10.5px',color:'rgba(255,255,255,.65)','margin-top':'5px'})}">${l}</div>
     </div>`).join('')}
   </div>
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     03 — CUSTOMER PROFILE
-════════════════════════════════════════════════ -->
-<div data-sec="customer" style="${$({padding:'30px 44px',background:C.white,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('03','Customer Profile',C.blue)}
-  <div style="${$({border:`1px solid ${C.border}`,'border-radius':'10px',overflow:'hidden'})}">
-    <div style="${$({display:'grid','grid-template-columns':'repeat(3,1fr)'})}">
+<!-- ████████████████████████████████████████████████
+     04 — PROJECT OVERVIEW
+████████████████████████████████████████████████ -->
+<div data-sec="overview" style="${$({padding:'30px 46px',background:C.bg,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('04','Project Overview',C.gd)}
+  <div style="${$({display:'grid','grid-template-columns':'1fr 1fr',gap:'14px','margin-bottom':'16px'})}">
+    <!-- Client info -->
+    <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'16px 18px'})}">
+      <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'12px'})}">Client Details</div>
+      ${IR('Client Name',`${D.sal} ${D.cust}`)}
+      ${IR('Location',`${D.dist?D.dist+', ':''} ${sd.name}`)}
+      ${IR('DISCOM',D.discom||sd.discom||'—')}
+      ${IR('Consumer Category',D.categ||'—')}
+      ${IR('Monthly Consumption',`${D.cons} kWh`,true)}
+    </div>
+    <!-- Project scope -->
+    <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'16px 18px'})}">
+      <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'12px'})}">Project Scope</div>
+      ${IR('System Type',D.stype==='hybrid'?'Hybrid On-Grid':'Grid-Connected On-Grid')}
+      ${IR('Plant Capacity',`${D.cap} kWp`)}
+      ${IR('Roof Area Required',`${D.area} sq.ft`)}
+      ${IR('Expected Annual Output',`${fmtN(Math.round(aGen(D.cap)))} kWh`)}
+      ${IR('System Validity',`${D.validity} Days from ${D.qdateStr}`,true)}
+    </div>
+  </div>
+  <!-- Objectives -->
+  <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'16px 18px'})}">
+    <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'12px'})}">Project Objectives</div>
+    <div style="${$({display:'grid','grid-template-columns':'repeat(3,1fr)',gap:'10px'})}">
       ${[
-        ['Name',             `${D.sal} ${D.cust}`],
-        ['Phone',            D.phone||'—'],
-        ['Email',            D.email||'—'],
-        ['State / District', `${sd.name}${D.dist?' / '+D.dist:''}`],
-        ['Pin Code',         D.pin||'—'],
-        ['DISCOM',           D.discom||sd.discom||'—'],
-        ['Address',          D.billaddr?.replace(/\n/g,', ')||'—'],
-        ['Site Address',     D.site?.replace(/\n/g,', ')||'—'],
-        ['Meter / Consumer No.', D.meter||'—'],
-        ['Consumer Category', D.categ||'—'],
-        ['System Type',      D.ptype],
-        ['Installation State', sd.name],
-      ].map(([l,v],i)=>`
-      <div style="${$({padding:'11px 15px',background:Math.floor(i/3)%2===0?C.white:C.bg,'border-right':i%3<2?`1px solid ${C.border}`:'none','border-bottom':i<9?`1px solid ${C.border}`:'none'})}">
-        <div style="${$({'font-size':'7.5px',color:C.t3,'text-transform':'uppercase','letter-spacing':'0.7px','margin-bottom':'4px'})}">${l}</div>
-        <div style="${$({'font-size':'11px',color:C.t1,'font-weight':'600','line-height':'1.35'})}">${v}</div>
+        ['💰','Cost Savings','Reduce electricity bills by 70–90% through solar generation and net metering'],
+        ['🔋','Energy Security','Ensure uninterrupted power supply '+(D.stype==='hybrid'?'with battery backup':'with grid backup')],
+        ['🌍','Sustainability','Reduce carbon footprint by '+co2Annual+' tonnes CO₂ per year'],
+      ].map(([ic,t,d])=>`
+      <div style="${$({'text-align':'center',padding:'12px 10px'})}">
+        <div style="${$({'font-size':'24px','margin-bottom':'8px'})}">${ic}</div>
+        <div style="${$({'font-size':'10.5px','font-weight':'700',color:C.nv,'margin-bottom':'5px'})}">${t}</div>
+        <div style="${$({'font-size':'9.5px',color:C.t2,'line-height':'1.6'})}">${d}</div>
       </div>`).join('')}
     </div>
   </div>
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     04 — SYSTEM DESIGN
-════════════════════════════════════════════════ -->
-<div data-sec="sysdesign" style="${$({padding:'30px 44px',background:C.bg,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('04','System Design & Specifications',C.gold)}
+<!-- ████████████████████████████████████████████████
+     05 — TECHNICAL SPECIFICATIONS
+████████████████████████████████████████████████ -->
+<div data-sec="sysdesign" style="${$({padding:'30px 46px',background:C.wh,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('05','Technical Specifications',C.gd)}
+  <!-- 4 KPI cards -->
   <div style="${$({display:'grid','grid-template-columns':'repeat(4,1fr)',gap:'10px','margin-bottom':'16px'})}">
-    ${KPI(`${D.cap} kWp`, 'DC Peak', 'System Capacity', C.navy)}
-    ${KPI(fmtN(mGen(D.cap)), 'kWh/Month', 'Est. Generation', C.teal)}
-    ${KPI(fmtN(aGen(D.cap)), 'kWh/Year', 'Annual Output', C.green)}
-    ${KPI(String(D.area), 'sq.ft', 'Roof Area', C.blue)}
-    ${D.stype==='hybrid' ? KPI(`${D.bkwh} kWh`, 'Battery', D.btype||'LiFePO4', C.gold) : ''}
+    ${KPI(`${D.cap} kWp`, 'DC Peak', 'System Capacity', C.nv)}
+    ${KPI(fmtN(Math.round(mGen(D.cap))), 'kWh/Month', 'Est. Monthly Generation', C.tl)}
+    ${KPI(fmtN(Math.round(aGen(D.cap))), 'kWh/Year', 'Annual Output', C.gr)}
+    ${KPI(String(D.area), 'sq.ft', 'Roof Area Required', C.bl)}
+    ${D.stype==='hybrid'?KPI(`${D.bkwh} kWh`,'Battery',D.btype||'LiFePO4',C.gd):''}
   </div>
-  <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'10px',overflow:'hidden'})}">
+  <!-- Component specs -->
+  <div style="${$({background:C.bg,border:`1px solid ${C.bd}`,'border-radius':'10px',overflow:'hidden','margin-bottom':'14px'})}">
     <table style="width:100%;border-collapse:collapse">
-      <thead><tr style="background:${C.navy}">
-        <th style="${$({padding:'10px 14px','text-align':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,0.6)','font-weight':'600',width:'35%'})}">Component</th>
-        <th style="${$({padding:'10px 14px','text-align':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,0.6)','font-weight':'600'})}">Specification</th>
+      <thead><tr style="background:${C.nv}">
+        <th style="${$({padding:'10px 14px','text-align':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600',width:'30%'})}">Component</th>
+        <th style="${$({padding:'10px 14px','text-align':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600',width:'45%'})}">Specification</th>
+        <th style="${$({padding:'10px 14px','text-align':'center','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">Warranty</th>
       </tr></thead>
       <tbody>
         ${[
-          ['Solar PV Module',   `${D.pbrand||'As per approved make'} — ${D.pwp} Wp × ${D.pcount} Nos`],
-          ['Inverter',          `${D.inv?D.inv.brand+' — '+D.inv.cap:'As per approved make'}`],
-          ['System Type',       sysLabel],
-          ...(D.stype==='hybrid'?[['Battery Bank',`${D.bkwh} kWh — ${D.btype||'LiFePO4'} — ${D.bhrs}h Backup`]]:[]),
-          ['Monthly Consumption',`${D.cons} kWh/Month`],
-        ].map(([c,s],i)=>`
-        <tr style="background:${i%2===0?C.white:C.bg}">
-          <td style="${$({padding:'10px 14px','font-weight':'700',color:C.navy,'font-size':'10.5px','border-bottom':`1px solid ${C.border}`})}">${c}</td>
-          <td style="${$({padding:'10px 14px',color:C.t2,'font-size':'10.5px','border-bottom':`1px solid ${C.border}`})}">${s}</td>
+          ['Solar PV Module',   `${D.pbrand||'As per approved make'} — ${D.pwp} Wp × ${D.pcount} Nos`, '10 yr Product + 25 yr Linear'],
+          ['Inverter',          `${D.inv?D.inv.brand+' — '+D.inv.cap:'As per approved make'}`, '5–10 Year Manufacturer'],
+          ['Mounting Structure','Hot-dip galvanized MS / Aluminium alloy, IS:875, wind-rated', '5 Year Structural'],
+          ['DC Cables',         'TÜV certified, UV-resistant, 1500V, double insulation', 'As per IS:694'],
+          ['Monitoring System', 'Wi-Fi/GSM data logger, real-time dashboard, mobile alerts', '1 Year'],
+          ...(D.stype==='hybrid'?[['Battery Bank',`${D.bkwh} kWh — ${D.btype||'LiFePO4'} — ${D.bhrs}h Backup`,'5–10 Year']]:[]),
+        ].map(([c,s,w],i)=>`
+        <tr style="background:${i%2===0?C.wh:C.bg}">
+          <td style="${$({padding:'10px 14px','font-weight':'700',color:C.nv,'font-size':'10.5px','border-bottom':`1px solid ${C.bd}`})}">${c}</td>
+          <td style="${$({padding:'10px 14px',color:C.t2,'font-size':'10px','border-bottom':`1px solid ${C.bd}`,'line-height':'1.45'})}">${s}</td>
+          <td style="${$({padding:'10px 14px','text-align':'center','font-size':'9px',color:C.gr,'font-weight':'600','border-bottom':`1px solid ${C.bd}`})}">${w}</td>
         </tr>`).join('')}
       </tbody>
     </table>
   </div>
-</div>
-
-
-<!-- ════════════════════════════════════════════════
-     05 — BILL OF MATERIALS
-════════════════════════════════════════════════ -->
-<div data-sec="bom" style="${$({padding:'30px 44px',background:C.white,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('05','Bill of Materials',C.gold)}
-  <div style="${$({border:`1px solid ${C.border}`,'border-radius':'10px',overflow:'hidden'})}">
+  <!-- BOM -->
+  <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'10px'})}">Complete Bill of Materials</div>
+  <div style="${$({border:`1px solid ${C.bd}`,'border-radius':'10px',overflow:'hidden'})}">
     <table style="width:100%;border-collapse:collapse">
-      <thead><tr style="background:${C.navy}">
+      <thead><tr style="background:${C.nv}">
         ${['#','Description','Specification','Qty','Unit'].map((h,i)=>`
-        <th style="${$({padding:'10px 12px','text-align':i>2?'center':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,0.6)','font-weight':'600'})}">${h}</th>`).join('')}
+        <th style="${$({padding:'9px 12px','text-align':i>2?'center':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">${h}</th>`).join('')}
       </tr></thead>
       <tbody>${bomHTML}</tbody>
     </table>
@@ -376,78 +450,63 @@ export function buildDoc(D) {
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     06 — GOVERNMENT SUBSIDY
-════════════════════════════════════════════════ -->
-<div data-sec="subsidy" style="${$({padding:'30px 44px',background:C.bg,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('06','Government Subsidy & Incentives',C.gold)}
-  ${subSection}
-</div>
-
-
-<!-- ════════════════════════════════════════════════
-     07 — NET METERING
-════════════════════════════════════════════════ -->
-<div data-sec="netmetering" style="${$({padding:'30px 44px',background:C.white,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('07','Net Metering & Grid Connection',C.teal)}
-  <div style="${$({display:'grid','grid-template-columns':'1fr 1fr',gap:'14px'})}">
-    <div style="${$({background:C.bg,'border-radius':'10px',padding:'18px',border:`1px solid ${C.border}`,'border-top':`3px solid ${C.teal}`})}">
-      <div style="${$({'font-weight':'700',color:C.navy,'font-size':'11px','margin-bottom':'14px','font-family':'Georgia, serif'})}">Grid Connection — ${sd.name}</div>
-      ${IR('DISCOM', D.discom||sd.discom||'—')}
-      ${IR('Nodal Agency', `<span style="font-size:9.5px;line-height:1.4">${sd.agency}</span>`)}
-      ${IR('Net Metering Limit', sd.netMeteringLimit)}
-      ${IR('Connection Time', sd.connTime)}
-      ${IR('Settlement', `<span style="font-size:9px;line-height:1.5">${sd.nmSettle}</span>`)}
-      ${IR('Export Tariff (APPC)', `<span style="color:${C.green};font-weight:700">₹${D.exportRate}/unit</span>`, true)}
-    </div>
-    <div style="${$({background:C.bg,'border-radius':'10px',padding:'18px',border:`1px solid ${C.border}`,'border-top':`3px solid ${C.gold}`})}">
-      <div style="${$({'font-weight':'700',color:C.navy,'font-size':'11px','margin-bottom':'14px','font-family':'Georgia, serif'})}">${sd.name} — Electricity Tariff Slabs</div>
-      ${(sd.tariff||[]).map((t,i,a)=>IR(t.s,`<span style="font-weight:700;color:${C.navy}">${t.r}</span>`,i===a.length-1)).join('')}
-      <div style="${$({'margin-top':'12px',padding:'10px 12px',background:C.goldL,'border-radius':'8px',display:'flex','justify-content':'space-between','align-items':'center'})}">
-        <span style="${$({'font-size':'10px','font-weight':'700',color:C.navy})}">Avg. Grid Tariff</span>
-        <span style="${$({'font-size':'14px','font-weight':'700',color:C.gold})}">${D.tariff}/unit</span>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ════════════════════════════════════════════════
-     08 — FINANCIAL ANALYSIS
-════════════════════════════════════════════════ -->
-<div data-sec="financial" style="${$({padding:'30px 44px',background:C.bg,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('08','Financial Analysis',C.green)}
+<!-- ████████████████████████████████████████████████
+     06 — FINANCIAL ANALYSIS
+████████████████████████████████████████████████ -->
+<div data-sec="financial" style="${$({padding:'30px 46px',background:C.bg,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('06','Financial Analysis',C.gr)}
 
   <!-- 4 KPI cards -->
   <div style="${$({display:'grid','grid-template-columns':'repeat(4,1fr)',gap:'10px','margin-bottom':'14px'})}">
-    ${KPI(inr(D.annSave),  'Annual',       'Bill Savings',   C.navy)}
-    ${KPI(inr(D.annExport),'Annual',       'Export Income',  C.teal)}
-    ${KPI(inr(D.annBen),   'Total Annual', 'Benefit',        C.green)}
-    ${KPI(`${D.payback} yrs`, 'Payback',   'Period',         C.gold)}
+    ${KPI(inr(D.annSave),    'Annual', 'Bill Savings',  C.nv)}
+    ${KPI(inr(D.annExport),  'Annual', 'Export Income', C.tl)}
+    ${KPI(inr(D.annBen),     'Total Annual', 'Benefit', C.gr)}
+    ${KPI(`${D.payback} yrs`,'Payback','Period',        C.gd)}
   </div>
 
-  <!-- Summary metrics -->
+  <!-- Long-term returns -->
   <div style="${$({display:'grid','grid-template-columns':'repeat(3,1fr)',gap:'10px','margin-bottom':'16px'})}">
-    ${[
-      [inr(D.cum25),    '25-Year Returns',  C.green],
-      [`${D.roi25}%`,   '25-Year ROI',      C.teal],
-      [`${sd.tariffEsc}% p.a.`,'Tariff Escalation', C.gold],
-    ].map(([v,l,c])=>`
-    <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'10px',padding:'14px 16px',display:'flex','align-items':'center',gap:'13px'})}">
-      <div style="${$({width:'40px',height:'40px','border-radius':'8px',background:C.navy,display:'flex','align-items':'center','justify-content':'center','flex-shrink':'0','font-size':'16px'})}">📈</div>
+    ${[[inr(D.cum25),'25-Year Cumulative Returns',C.gr],[`${D.roi25}%`,'25-Year Return on Investment',C.tl],[`${sd.tariffEsc}% p.a.`,'Electricity Tariff Escalation',C.gd]].map(([v,l,c])=>`
+    <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'14px 18px',display:'flex','align-items':'center',gap:'12px'})}">
+      <div style="${$({width:'42px',height:'42px','border-radius':'8px',background:C.nv,display:'flex','align-items':'center','justify-content':'center','flex-shrink':'0','font-size':'18px'})}">📈</div>
       <div>
-        <div style="${$({'font-size':'16px','font-weight':'700',color:c,'font-family':'Georgia, serif'})}">${v}</div>
-        <div style="${$({'font-size':'8.5px',color:C.t3,'text-transform':'uppercase','letter-spacing':'0.5px','margin-top':'2px'})}">${l}</div>
+        <div style="${$({'font-size':'16px','font-weight':'700',color:c,'font-family':'Georgia,serif'})}">${v}</div>
+        <div style="${$({'font-size':'9px',color:C.t3,'margin-top':'3px'})}">${l}</div>
       </div>
     </div>`).join('')}
   </div>
 
-  <!-- 10yr table -->
-  <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'10px',overflow:'hidden'})}">
+  <!-- Bill before/after comparison -->
+  <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'16px 20px','margin-bottom':'14px'})}">
+    <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'14px'})}">Monthly Bill Comparison</div>
+    <div style="${$({display:'grid','grid-template-columns':'1fr auto 1fr',gap:'12px','align-items':'center'})}">
+      <div>
+        <div style="${$({'font-size':'8.5px',color:C.t3,'margin-bottom':'6px'})}">BEFORE SOLAR</div>
+        <div style="${$({'font-size':'20px','font-weight':'700',color:C.or,'font-family':'Georgia,serif'})}">${inr(D.cons*(D.tariff||sd.avgTariff||5.5))}</div>
+        <div style="${$({'font-size':'8.5px',color:C.t3,'margin-top':'3px'})}">per month @ ${D.tariff}/unit</div>
+        <div style="${$({'margin-top':'10px',height:'20px',background:C.orL,'border-radius':'4px',position:'relative',overflow:'hidden'})}">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:100%;background:${C.or};border-radius:4px;opacity:0.8"></div>
+        </div>
+      </div>
+      <div style="${$({'text-align':'center','font-size':'18px',color:C.gr,'font-weight':'700'})}">→</div>
+      <div>
+        <div style="${$({'font-size':'8.5px',color:C.t3,'margin-bottom':'6px'})}">AFTER SOLAR</div>
+        <div style="${$({'font-size':'20px','font-weight':'700',color:C.gr,'font-family':'Georgia,serif'})}">${inr(Math.max(0,(D.cons-Math.round(mGen(D.cap)))*(D.tariff||sd.avgTariff||5.5)))}</div>
+        <div style="${$({'font-size':'8.5px',color:C.t3,'margin-top':'3px'})}">estimated net bill</div>
+        <div style="${$({'margin-top':'10px',height:'20px',background:C.grL,'border-radius':'4px',position:'relative',overflow:'hidden'})}">
+          <div style="${$({position:'absolute',left:'0',top:'0',bottom:'0',width:Math.round(Math.max(0,(D.cons-Math.round(mGen(D.cap)))/D.cons)*100)+'%',background:C.gr,'border-radius':'4px',opacity:'0.8'})}"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10-year projection table -->
+  <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',overflow:'hidden'})}">
+    <div style="${$({padding:'10px 16px',background:C.bg,'border-bottom':`1px solid ${C.bd}`,'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px'})}">10-Year Financial Projection</div>
     <table style="width:100%;border-collapse:collapse">
-      <thead><tr style="background:${C.navy}">
-        ${['Year','Generation','Annual Benefit','Cumulative','Net (After Investment)'].map((h,i)=>`
-        <th style="${$({padding:'10px 12px','text-align':i===0?'left':'right','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,0.6)','font-weight':'600'})}">${h}</th>`).join('')}
+      <thead><tr style="background:${C.nv}">
+        ${['Year','Generation','Annual Benefit','Cumulative','Net After Investment'].map((h,i)=>`
+        <th style="${$({padding:'9px 12px','text-align':i===0?'left':'right','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">${h}</th>`).join('')}
       </tr></thead>
       <tbody>${finRows}</tbody>
     </table>
@@ -455,158 +514,265 @@ export function buildDoc(D) {
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     09 — COST SUMMARY
-════════════════════════════════════════════════ -->
-<div data-sec="cost" style="${$({padding:'30px 44px',background:C.white,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('09','Cost Summary',C.gold)}
+<!-- ████████████████████████████████████████████████
+     07 — ENVIRONMENTAL IMPACT
+████████████████████████████████████████████████ -->
+<div data-sec="env" style="${$({padding:'30px 46px',background:C.wh,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('07','Environmental Impact',C.gr)}
+  <div style="${$({display:'grid','grid-template-columns':'repeat(4,1fr)',gap:'12px','margin-bottom':'16px'})}">
+    ${ISTAT('🌿',`${co2Annual}T`,'CO₂ Saved / Year',C.gr)}
+    ${ISTAT('🌳',`${treesAnnual}`,'Trees Equivalent / Year',C.tl)}
+    ${ISTAT('💚',`${co2Life}T`,'CO₂ Saved Over 25 Years',C.gr)}
+    ${ISTAT('🌲',`${treesLife}`,'Trees Equivalent (25 Years)',C.tl)}
+  </div>
+  <div style="${$({background:`linear-gradient(135deg,${C.grL},${C.tlL})`,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'18px 22px'})}">
+    <div style="${$({'font-size':'11px','font-weight':'700',color:C.nv,'margin-bottom':'12px','font-family':'Georgia,serif'})}">Your Contribution to a Greener India</div>
+    <div style="${$({display:'grid','grid-template-columns':'repeat(3,1fr)',gap:'14px'})}">
+      ${[
+        ['☀️','Clean Energy',`${fmtN(Math.round(aGen(D.cap)*25))} kWh of clean electricity over 25 years — powering your premises without fossil fuels.`],
+        ['🏭','Carbon Reduction',`Equivalent to removing ${Math.round(co2Annual/2.3)} cars off the road every year. A tangible contribution to India's climate goals.`],
+        ['🌱','Green Legacy',`${co2Life} tonnes of CO₂ avoided and ${treesLife} trees equivalent planted — a legacy of sustainability.`],
+      ].map(([ic,t,d])=>`
+      <div>
+        <div style="${$({'font-size':'20px','margin-bottom':'6px'})}">${ic}</div>
+        <div style="${$({'font-size':'10.5px','font-weight':'700',color:C.gr,'margin-bottom':'5px'})}">${t}</div>
+        <div style="${$({'font-size':'9.5px',color:C.t2,'line-height':'1.65'})}">${d}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+</div>
 
-  <!-- SECTION A: Project Cost -->
+
+<!-- ████████████████████████████████████████████████
+     08 — GOVERNMENT SUBSIDY & INCENTIVES
+████████████████████████████████████████████████ -->
+<div data-sec="subsidy" style="${$({padding:'30px 46px',background:C.bg,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('08','Government Subsidy & Incentives',C.gd)}
+  ${subSection}
+</div>
+
+
+<!-- ████████████████████████████████████████████████
+     09 — NET METERING & GRID CONNECTION
+████████████████████████████████████████████████ -->
+<div data-sec="netmetering" style="${$({padding:'30px 46px',background:C.wh,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('09','Net Metering & Grid Connection',C.tl)}
+  <div style="${$({display:'grid','grid-template-columns':'1fr 1fr',gap:'14px'})}">
+    <div style="${$({background:C.bg,'border-radius':'10px',padding:'18px',border:`1px solid ${C.bd}`,'border-top':`3px solid ${C.tl}`})}">
+      <div style="${$({'font-weight':'700',color:C.nv,'font-size':'11.5px','margin-bottom':'14px','font-family':'Georgia,serif'})}">Grid Connection — ${sd.name}</div>
+      ${IR('DISCOM',D.discom||sd.discom||'—')}
+      ${IR('Nodal Agency',`<span style="font-size:9.5px;line-height:1.4">${sd.agency}</span>`)}
+      ${IR('Net Metering Limit',sd.netMeteringLimit)}
+      ${IR('Connection Time',sd.connTime)}
+      ${IR('Settlement',`<span style="font-size:9.5px;line-height:1.5">${sd.nmSettle}</span>`)}
+      ${IR('Export Tariff (APPC)',`<span style="color:${C.gr};font-weight:700">₹${D.exportRate}/unit</span>`,true)}
+    </div>
+    <div style="${$({background:C.bg,'border-radius':'10px',padding:'18px',border:`1px solid ${C.bd}`,'border-top':`3px solid ${C.gd}`})}">
+      <div style="${$({'font-weight':'700',color:C.nv,'font-size':'11.5px','margin-bottom':'14px','font-family':'Georgia,serif'})}">${sd.name} — Tariff Slabs</div>
+      ${(sd.tariff||[]).map((t,i,a)=>IR(t.s,`<span style="font-weight:700;color:${C.nv}">${t.r}</span>`,i===a.length-1)).join('')}
+      <div style="${$({'margin-top':'12px',padding:'10px 13px',background:C.gdL,'border-radius':'8px',display:'flex','justify-content':'space-between','align-items':'center'})}">
+        <span style="${$({'font-size':'10.5px','font-weight':'700',color:C.nv})}">Avg. Grid Tariff</span>
+        <span style="${$({'font-size':'15px','font-weight':'700',color:C.gd})}">${D.tariff}/unit</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ████████████████████████████████████████████████
+     10 — COST SUMMARY
+████████████████████████████████████████████████ -->
+<div data-sec="cost" style="${$({padding:'30px 46px',background:C.bg,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('10','Cost Summary',C.gd)}
+
+  <!-- Section A -->
   <div style="${$({'margin-bottom':'16px'})}">
-    <div style="${$({'font-size':'9px','font-weight':'700',color:C.navy,'text-transform':'uppercase','letter-spacing':'1.2px','margin-bottom':'10px',padding:'7px 14px',background:C.bg,'border-radius':'6px','border-left':`4px solid ${C.navy}`})}">
+    <div style="${$({'font-size':'9px','font-weight':'700',color:C.nv,'text-transform':'uppercase','letter-spacing':'1.2px','margin-bottom':'10px',padding:'7px 14px',background:C.wh,'border-radius':'6px','border-left':`4px solid ${C.nv}`})}">
       A — Project Cost (Payable to Enermass)
     </div>
-    <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'10px',padding:'16px 20px'})}">
+    <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'16px 20px'})}">
       ${IR('Plant Cost (Net after Discount)', inr(plantNet))}
-      ${addAmt>0 ? IR(`Additional Cost${D.addCostDesc?' — '+D.addCostDesc:''}`, inr(addAmt)) : ''}
-      <!-- Total Project Cost — dark highlight -->
-      <div style="${$({'margin-top':'12px',padding:'13px 18px',background:C.navy,'border-radius':'8px',display:'flex','justify-content':'space-between','align-items':'center'})}">
-        <span style="${$({'font-size':'11px',color:C.white,'font-weight':'700'})}">Total Project Cost</span>
-        <span style="${$({'font-size':'16px','font-weight':'700',color:C.goldB,'font-family':'Georgia, serif'})}">${inr(totalProj)}</span>
+      ${addAmt>0?IR(`Additional Cost${D.addCostDesc?' — '+D.addCostDesc:''}`,inr(addAmt)):''}
+      <div style="${$({'margin-top':'12px',padding:'13px 18px',background:C.nv,'border-radius':'8px',display:'flex','justify-content':'space-between','align-items':'center'})}">
+        <span style="${$({'font-size':'11px',color:C.wh,'font-weight':'700'})}">Total Project Cost</span>
+        <span style="${$({'font-size':'18px','font-weight':'700',color:C.gd2,'font-family':'Georgia,serif'})}">${inr(totalProj)}</span>
       </div>
     </div>
   </div>
 
-  <!-- SECTION B: Customer Commitment -->
+  <!-- Section B -->
   <div>
-    <div style="${$({'font-size':'9px','font-weight':'700',color:C.green,'text-transform':'uppercase','letter-spacing':'1.2px','margin-bottom':'10px',padding:'7px 14px',background:C.greenL,'border-radius':'6px','border-left':`4px solid ${C.green}`})}">
+    <div style="${$({'font-size':'9px','font-weight':'700',color:C.gr,'text-transform':'uppercase','letter-spacing':'1.2px','margin-bottom':'10px',padding:'7px 14px',background:C.grL,'border-radius':'6px','border-left':`4px solid ${C.gr}`})}">
       B — Customer Financial Commitment
     </div>
-
-    <!-- Dark gradient box -->
-    <div style="${$({background:C.navy,'border-radius':'12px',padding:'22px 24px',position:'relative',overflow:'hidden'})}">
-      <div style="position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;background:rgba(201,148,10,0.1)"></div>
-
+    <div style="${$({background:C.nv,'border-radius':'12px',padding:'22px 24px',position:'relative',overflow:'hidden'})}">
+      <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(201,148,10,.1)"></div>
       ${DR('Plant Price (Net after Discount + Additional Costs)', inr(totalProj))}
       ${DR('Taxable Value', inr(taxableVal), true)}
       ${DR('GST (Blended @ 8.9%)', inr(totalGST), true)}
-      ${disc>0 ? DR('Effective Discount Allowed', `− ${inr(disc)}`, false, '#FFAAAA') : ''}
-      ${totalSub>0 ? DR(`Government Subsidy (CFA ${inr(D.cfa)} + State ${inr(D.ssub||0)})`, `− ${inr(totalSub)}`, false, '#7DD3FC') : ''}
-
-      <!-- Commitment highlight -->
-      <div style="${$({'margin-top':'16px',padding:'16px 20px',background:'rgba(26,122,66,0.2)',border:'2px solid rgba(26,122,66,0.4)','border-radius':'10px',position:'relative','z-index':'1'})}">
+      ${disc>0?DR('Effective Discount Allowed','− '+inr(disc),false,'#FFAAAA'):''}
+      ${totalSub>0?DR(`Government Subsidy (CFA ${inr(D.cfa)} + State ${inr(D.ssub||0)})`,'− '+inr(totalSub),false,'#7DD3FC'):''}
+      <div style="${$({'margin-top':'14px',padding:'16px 20px',background:'rgba(26,122,66,.2)',border:'2px solid rgba(26,122,66,.4)','border-radius':'10px'})}">
         <div style="${$({display:'flex','justify-content':'space-between','align-items':'center'})}">
           <div>
-            <div style="${$({'font-size':'8px','text-transform':'uppercase','letter-spacing':'1.2px',color:'rgba(134,239,172,0.9)','font-weight':'700','margin-bottom':'4px'})}">💰 Customer Financial Commitment</div>
-            <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,0.35)'})}">${addAmt>0?'Plant Price + Additional Cost − Subsidy − Discount':'Total Plant Price − Subsidy'}</div>
+            <div style="${$({'font-size':'8px','text-transform':'uppercase','letter-spacing':'1.2px',color:'rgba(134,239,172,.9)','font-weight':'700','margin-bottom':'4px'})}">💰 Customer Financial Commitment</div>
+            <div style="${$({'font-size':'8.5px',color:'rgba(255,255,255,.35)'})}">Total Project Cost − Subsidy − Discount</div>
           </div>
-          <div style="${$({'font-size':'22px','font-weight':'700',color:'#86EFAC','font-family':'Georgia, serif'})}">${inr(custCommit)}</div>
+          <div style="${$({'font-size':'24px','font-weight':'700',color:'#86EFAC','font-family':'Georgia,serif'})}">${inr(custCommit)}</div>
         </div>
-        <div style="${$({'font-size':'8.5px','font-style':'italic',color:'rgba(134,239,172,0.65)','text-align':'right','margin-top':'6px'})}">${numberToIndianCurrencyWords(custCommit)}</div>
+        <div style="${$({'font-size':'8.5px','font-style':'italic',color:'rgba(134,239,172,.65)','text-align':'right','margin-top':'6px'})}">${numberToIndianCurrencyWords(custCommit)}</div>
       </div>
-
-      <!-- Note -->
-      <div style="${$({'margin-top':'12px','font-size':'8.5px',color:'rgba(255,255,255,0.3)','line-height':'1.7','padding-top':'12px','border-top':'1px dashed rgba(255,255,255,0.1)'})}">
+      <div style="${$({'margin-top':'12px','font-size':'8.5px',color:'rgba(255,255,255,.3)','line-height':'1.7','padding-top':'12px','border-top':'1px dashed rgba(255,255,255,.1)'})}">
         GST @ 8.9% blended per MNRE Govt. notification. Discount included in Total Plant Price. Subsidy reduces customer commitment only. All prices in INR.
       </div>
     </div>
-
-    <!-- Validity -->
-    <div style="${$({'margin-top':'12px',padding:'10px 16px',background:C.goldL,'border-radius':'8px',display:'flex','align-items':'center',gap:'10px'})}">
+    <div style="${$({'margin-top':'12px',padding:'10px 16px',background:C.gdL,'border-radius':'8px',display:'flex','align-items':'center',gap:'10px'})}">
       <span style="${$({'font-size':'9px',color:C.t3})}">📅 Proposal Valid Until</span>
-      <strong style="${$({'font-size':'11px',color:C.navy})}">${D.duedateStr} (${D.validity} Days)</strong>
+      <strong style="${$({'font-size':'11px',color:C.nv})}">${D.duedateStr} (${D.validity} Days)</strong>
     </div>
   </div>
 
-  <!-- Subsidy info card -->
   ${D.subon&&totalSub>0?`
-  <div style="${$({'margin-top':'14px',background:C.blueL,border:`1.5px solid #93C5FD`,'border-radius':'10px',padding:'15px 20px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'10px'})}">
+  <div style="${$({'margin-top':'14px',background:C.blL,border:`1.5px solid #93C5FD`,'border-radius':'10px',padding:'15px 20px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'10px'})}">
     <div>
-      <div style="${$({'font-weight':'700',color:C.blue,'font-size':'11px','margin-bottom':'4px'})}">🏛 Government Subsidy (CFA + State)</div>
+      <div style="${$({'font-weight':'700',color:C.bl,'font-size':'11px','margin-bottom':'4px'})}">🏛 Government Subsidy (CFA + State)</div>
       <div style="${$({'font-size':'10px',color:C.t2})}">Credited directly by Government post-commissioning. Reduces only customer financial commitment.</div>
     </div>
     <div style="text-align:right">
-      <div style="${$({'font-size':'20px','font-weight':'700',color:C.blue,'font-family':'Georgia, serif'})}">${inr(totalSub)}</div>
+      <div style="${$({'font-size':'22px','font-weight':'700',color:C.bl,'font-family':'Georgia,serif'})}">${inr(totalSub)}</div>
       <div style="${$({'font-size':'8.5px',color:C.t3})}">CFA ${inr(D.cfa)} + State ${inr(D.ssub||0)}</div>
     </div>
   </div>`:''}
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     10 — TERMS & CONDITIONS
-════════════════════════════════════════════════ -->
-<div data-sec="tnc" style="${$({padding:'30px 44px',background:C.bg,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('10','Terms & Conditions',C.t3)}
-  <div style="${$({background:C.white,border:`1px solid ${C.border}`,'border-radius':'10px',padding:'8px 18px'})}">
-    <div style="${$({'font-size':'9px',color:C.t3,padding:'8px 0','border-bottom':`1px dashed ${C.border}`,'margin-bottom':'4px'})}">
+<!-- ████████████████████████████████████████████████
+     11 — PROJECT EXECUTION TIMELINE
+████████████████████████████████████████████████ -->
+<div data-sec="execution" style="${$({padding:'30px 46px',background:C.wh,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('11','Project Execution Plan',C.bl)}
+  <!-- Timeline -->
+  <div style="${$({'margin-bottom':'16px'})}">
+    <div style="${$({display:'grid','grid-template-columns':'repeat(5,1fr)',gap:'0',position:'relative'})}">
+      <!-- connecting line -->
+      <div style="position:absolute;top:20px;left:10%;right:10%;height:2px;background:linear-gradient(to right,${C.gd},${C.tl},${C.bl});z-index:0"></div>
+      ${[
+        ['📋','Week 1–2',   'Site Survey & System Design','Detailed site assessment, structural analysis, SLD preparation'],
+        ['🛒','Week 2–4',   'Material Procurement',       'Component ordering, quality check, factory testing'],
+        ['🏗','Week 4–6',   'Installation',               'MMS, panels, inverter, DC/AC cabling, earthing'],
+        ['⚡','Week 6–7',   'Testing & Commissioning',    'String test, IR test, inverter configuration, trial run'],
+        ['📄','Week 7–10',  'Net Metering & Handover',    'DISCOM application, meter installation, owner training'],
+      ].map(([ic,w,t,d],i)=>`
+      <div style="${$({'text-align':'center',padding:'0 6px',position:'relative','z-index':'1'})}">
+        <div style="${$({width:'40px',height:'40px','border-radius':'50%',background:C.nv,display:'flex','align-items':'center','justify-content':'center','margin':'0 auto 8px','font-size':'16px','box-shadow':'0 3px 10px rgba(10,31,60,.25)'})}">${ic}</div>
+        <div style="${$({'font-size':'8px','font-weight':'700',color:C.gd,'margin-bottom':'4px'})}">${w}</div>
+        <div style="${$({'font-size':'9.5px','font-weight':'700',color:C.nv,'margin-bottom':'4px','line-height':'1.3'})}">${t}</div>
+        <div style="${$({'font-size':'8.5px',color:C.t3,'line-height':'1.5'})}">${d}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Payment schedule table -->
+  <div style="${$({'font-size':'8px','font-weight':'700',color:C.t3,'text-transform':'uppercase','letter-spacing':'1px','margin-bottom':'10px'})}">Payment Schedule</div>
+  <div style="${$({border:`1px solid ${C.bd}`,'border-radius':'10px',overflow:'hidden'})}">
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="background:${C.nv}">
+        <th style="${$({padding:'9px 14px','text-align':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">Milestone</th>
+        <th style="${$({padding:'9px 14px','text-align':'center','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">%</th>
+        <th style="${$({padding:'9px 14px','text-align':'right','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">Amount</th>
+        <th style="${$({padding:'9px 14px','text-align':'left','font-size':'8px','text-transform':'uppercase','letter-spacing':'1px',color:'rgba(255,255,255,.6)','font-weight':'600'})}">Timing</th>
+      </tr></thead>
+      <tbody>
+        ${[
+          ['Advance / Mobilization','50%',Math.round(custCommit*0.5),'On order confirmation'],
+          ['Pre-Dispatch','40%',Math.round(custCommit*0.4),'Before material dispatch'],
+          ['Commissioning & Handover','10%',Math.round(custCommit*0.1),'On successful commissioning'],
+        ].map(([m,p,a,t],i)=>`
+        <tr style="background:${i%2===0?C.wh:C.bg}">
+          <td style="${$({padding:'9px 14px','font-weight':'600',color:C.t1,'font-size':'10.5px','border-bottom':`1px solid ${C.bd}`})}">${m}</td>
+          <td style="${$({padding:'9px 14px','text-align':'center','font-weight':'700',color:C.gd,'font-size':'10.5px','border-bottom':`1px solid ${C.bd}`})}">${p}</td>
+          <td style="${$({padding:'9px 14px','text-align':'right','font-weight':'700',color:C.nv,'font-size':'10.5px','border-bottom':`1px solid ${C.bd}`})}">${inr(a)}</td>
+          <td style="${$({padding:'9px 14px',color:C.t2,'font-size':'10px','border-bottom':`1px solid ${C.bd}`})}">${t}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ████████████████████████████████████████████████
+     12 — TERMS & CONDITIONS
+████████████████████████████████████████████████ -->
+<div data-sec="tnc" style="${$({padding:'30px 46px',background:C.bg,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('12','Terms & Conditions',C.t3)}
+  <div style="${$({background:C.wh,border:`1px solid ${C.bd}`,'border-radius':'10px',padding:'8px 18px'})}">
+    <div style="${$({'font-size':'9px',color:C.t3,padding:'8px 0','border-bottom':`1px dashed ${C.bd}`,'margin-bottom':'4px'})}">
       General T&amp;C applicable to all projects &nbsp;·&nbsp; ${sd.name}-specific T&amp;C additionally applicable
     </div>
     ${tncRaw.map((l,i)=>`
-    <div style="${$({display:'flex',gap:'14px','font-size':'10.5px',color:C.t2,'line-height':'1.7',padding:'6px 0','border-bottom':`1px dashed ${C.border}`})}">
-      <span style="${$({'font-size':'8.5px',color:C.t3,'min-width':'22px','padding-top':'2px','flex-shrink':'0','font-family':'Arial, sans-serif'})}">${String(i+1).padStart(2,'0')}</span>
+    <div style="${$({display:'flex',gap:'14px','font-size':'10.5px',color:C.t2,'line-height':'1.7',padding:'6px 0','border-bottom':`1px dashed ${C.bd}`})}">
+      <span style="${$({'font-size':'9px',color:C.t4,'min-width':'22px','flex-shrink':'0','padding-top':'2px'})}">${String(i+1).padStart(2,'0')}</span>
       <span>${l.replace(/^\d+\.\s*/,'')}</span>
     </div>`).join('')}
   </div>
 </div>
 
 
-<!-- ════════════════════════════════════════════════
-     11 — WHY SOLAR / WHY ENERMASS
-════════════════════════════════════════════════ -->
-<div data-sec="solar-info" style="${$({padding:'30px 44px',background:`linear-gradient(145deg,#EBF5FB,#EAFAF1)`,'border-bottom':`1px solid ${C.border}`})}">
-  ${SH('11','Why Solar Power? Why Enermass?',C.green)}
+<!-- ████████████████████████████████████████████████
+     13 — WHY SOLAR / WHY ENERMASS
+████████████████████████████████████████████████ -->
+<div data-sec="solar-info" style="${$({padding:'30px 46px',background:`linear-gradient(145deg,#EBF5FB,#EAFAF1)`,'border-bottom':`1px solid ${C.bd}`})}">
+  ${SEC('13','Why Solar Power? Why Enermass?',C.gr)}
   <div style="${$({display:'grid','grid-template-columns':'1fr 1fr',gap:'12px','margin-bottom':'14px'})}">
     ${[
-      ['☀️','Benefits of Solar Power', C.gold, ['Reduce electricity bills by 70–90%','25-year lifespan, minimal maintenance','Protection against rising tariffs','Earn via net metering / grid export','Increase property value','Zero carbon emissions']],
-      ['🏅','Why Choose Enermass?',   C.teal, ['MNRE Empanelled EPC Contractor',`${co['cp-exp']||'10+ Years'} of solar expertise`,`${co['cp-proj']||'500+'} successful installations`,`${co['cp-mw']||'15 MW+'} capacity commissioned`,'End-to-end DISCOM & net metering','ISO 9001:2015 quality certified']],
-      ['🔧','Warranty & Performance', C.blue, ['25-year solar panel power warranty','5–10 years inverter manufacturer warranty','10-year structural warranty','2-year installation workmanship warranty','MNRE certified Tier-1 manufacturers','BIS / IEC certified components']],
-      ['🤝','Customer Support',       C.green,['Dedicated project manager assigned','Timely DISCOM & net metering support','Post-installation commissioning','Annual performance monitoring report','Responsive — call / WhatsApp support',co.phone||'Contact us for support']],
+      ['☀️','Benefits of Solar Power',C.gd,['Reduce electricity bills by 70–90%','25-year system lifespan, minimal maintenance','Protection against rising electricity tariffs','Earn income via net metering & grid export','Increase your property value significantly','Zero carbon emissions — clean energy future']],
+      ['🏅','Why Choose Enermass?',   C.tl,['MNRE Empanelled EPC Contractor',`${co['cp-exp']||'10+'} years of solar expertise`,`${co['cp-proj']||'500+'} successful installations pan-India`,`${co['cp-mw']||'15 MW+'} aggregate capacity commissioned`,'End-to-end DISCOM liaison & net metering','ISO 9001:2015 certified quality processes']],
+      ['🔧','Warranty & Performance', C.bl,['Solar panels: 25-year linear power warranty','Inverter: 5–10 years manufacturer warranty','Structure: 10-year structural warranty','Workmanship: 2-year installation warranty','MNRE certified Tier-1 manufacturers','BIS / IEC certified components']],
+      ['🤝','Customer Support',       C.gr,['Dedicated project manager assigned','Timely DISCOM & net metering support','Post-installation commissioning & testing','Annual performance monitoring report','Responsive support via call / WhatsApp',co.phone||'Contact us for support queries']],
     ].map(([ic,t,c,items])=>`
-    <div style="${$({background:C.white,'border-radius':'10px',padding:'16px 18px',border:`1px solid ${C.border}`,'border-top':`3px solid ${c}`})}">
-      <div style="${$({'font-weight':'700',color:C.navy,'font-size':'11px','margin-bottom':'12px',display:'flex','align-items':'center',gap:'8px','font-family':'Georgia, serif'})}"><span>${ic}</span>${t}</div>
-      ${items.map(item=>`
-      <div style="${$({display:'flex','align-items':'flex-start',gap:'9px','font-size':'10px',color:C.t2,'line-height':'1.65',padding:'3px 0'})}">
+    <div style="${$({background:C.wh,'border-radius':'10px',padding:'16px 18px',border:`1px solid ${C.bd}`,'border-top':`4px solid ${c}`})}">
+      <div style="${$({'font-weight':'700',color:C.nv,'font-size':'11.5px','margin-bottom':'12px',display:'flex','align-items':'center',gap:'8px','font-family':'Georgia,serif'})}"><span>${ic}</span>${t}</div>
+      ${items.map(it=>`
+      <div style="${$({display:'flex','align-items':'flex-start',gap:'9px','font-size':'10.5px',color:C.t2,'line-height':'1.65',padding:'3px 0'})}">
         <span style="${$({color:c,'flex-shrink':'0','font-weight':'700','margin-top':'1px'})}">✓</span>
-        <span>${item}</span>
+        <span>${it}</span>
       </div>`).join('')}
     </div>`).join('')}
   </div>
-
-  <!-- Process bar (dark) -->
-  <div style="${$({background:C.navy,'border-radius':'10px',padding:'14px 22px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'10px'})}">
-    <span style="${$({'font-size':'10px',color:C.white,'font-weight':'600'})}">🌱 Site Survey → System Design → DISCOM Application → Installation → Net Metering → Commissioning</span>
-    <span style="${$({'font-size':'10px',color:C.goldB,'font-weight':'700'})}">${co.phone||''} ${co.email?'&nbsp;·&nbsp; '+co.email:''}</span>
+  <div style="${$({background:C.nv,'border-radius':'10px',padding:'14px 22px',display:'flex','justify-content':'space-between','align-items':'center','flex-wrap':'wrap',gap:'10px'})}">
+    <span style="${$({'font-size':'10.5px',color:C.wh,'font-weight':'600'})}">🌱 Site Survey → System Design → DISCOM Application → Installation → Net Metering → Commissioning</span>
+    <span style="${$({'font-size':'10.5px',color:C.gd2,'font-weight':'700'})}">${co.phone||''} ${co.email?'&nbsp;·&nbsp; '+co.email:''} ${co.web?'&nbsp;·&nbsp; '+co.web:''}</span>
   </div>
 </div>
 
 
-<!-- ════════════════════════════════════════════════
+<!-- ████████████████████████████████████████████████
      SIGNATURE BLOCK
-════════════════════════════════════════════════ -->
-<div style="${$({padding:'24px 44px',display:'flex','justify-content':'space-between','align-items':'flex-end',background:C.white,'border-top':`2px solid ${C.border}`})}">
+████████████████████████████████████████████████ -->
+<div style="${$({padding:'24px 46px',display:'flex','justify-content':'space-between','align-items':'flex-end',background:C.wh,'border-top':`2px solid ${C.bd}`})}">
   <div>
     <div style="height:42px"></div>
-    <div style="${$({display:'inline-block','border-top':`2px solid ${C.navy}`,'padding-top':'8px'})}">
-      <div style="${$({'font-weight':'700',color:C.navy,'font-size':'12px','font-family':'Georgia, serif'})}">${D.sal} ${D.cust}</div>
+    <div style="${$({display:'inline-block','border-top':`2px solid ${C.nv}`,'padding-top':'8px'})}">
+      <div style="${$({'font-weight':'700',color:C.nv,'font-size':'12px','font-family':'Georgia,serif'})}">${D.sal} ${D.cust}</div>
       <div style="${$({'font-size':'10px',color:C.t3,'margin-top':'2px'})}">Customer Acceptance</div>
     </div>
   </div>
   <div style="text-align:center">
-    <div style="font-size:28px;line-height:1">☀️</div>
-    <div style="${$({'font-size':'9px',color:C.gold,'font-weight':'700','margin-top':'5px','font-family':'Georgia, serif'})}">Solar Power Plant Proposal</div>
-    <div style="${$({'font-size':'8.5px',color:C.t3,'margin-top':'2px','font-family':'Arial, sans-serif'})}">${D.refno}</div>
+    <div style="font-size:30px;line-height:1">☀️</div>
+    <div style="${$({'font-size':'9.5px',color:C.gd,'font-weight':'700','margin-top':'5px','font-family':'Georgia,serif'})}">Solar Power Plant Proposal</div>
+    <div style="${$({'font-size':'8.5px',color:C.t3,'margin-top':'2px','font-family':'Arial,sans-serif'})}">${D.refno}</div>
+    <div style="${$({'font-size':'8px',color:C.t4,'margin-top':'2px'})}">Valid: ${D.duedateStr}</div>
   </div>
   <div style="text-align:right">
     <div style="height:42px"></div>
-    <div style="${$({display:'inline-block','border-top':`2px solid ${C.navy}`,'padding-top':'8px','text-align':'left'})}">
-      ${D.salesExec ? `
-      <div style="${$({'font-weight':'700',color:C.navy,'font-size':'12px','font-family':'Georgia, serif'})}">${D.salesExec.name}</div>
+    <div style="${$({display:'inline-block','border-top':`2px solid ${C.nv}`,'padding-top':'8px','text-align':'left'})}">
+      ${D.salesExec?`
+      <div style="${$({'font-weight':'700',color:C.nv,'font-size':'12px','font-family':'Georgia,serif'})}">${D.salesExec.name}</div>
       <div style="${$({'font-size':'10px',color:C.t2,'margin-top':'2px'})}">${D.salesExec.desig||'Sales Executive'}</div>
       <div style="${$({'font-size':'9.5px',color:C.t3,'margin-top':'2px'})}">${co.name||'Enermass Power Solutions Pvt. Ltd.'}</div>
       ${D.salesExec.phone?`<div style="${$({'font-size':'9px',color:C.t3,'margin-top':'2px'})}">${D.salesExec.phone}</div>`:''}
-      ` : `
-      <div style="${$({'font-weight':'700',color:C.navy,'font-size':'12px','font-family':'Georgia, serif'})}">Authorised Signatory</div>
+      `:`
+      <div style="${$({'font-weight':'700',color:C.nv,'font-size':'12px','font-family':'Georgia,serif'})}">Authorised Signatory</div>
       <div style="${$({'font-size':'9.5px',color:C.t3,'margin-top':'2px'})}">${co.name||'Enermass Power Solutions Pvt. Ltd.'}</div>
       `}
     </div>
