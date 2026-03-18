@@ -5,15 +5,22 @@ export async function exportToPDF(elementId, D) {
   if (!element) { alert('Proposal not found.'); return; }
 
   const filename = safe(`${D.refno || 'Proposal'} – ${D.cust || 'Customer'}`);
+  const co = D.co || {};
 
-  // Send ONLY the inner HTML — CSS is handled by server via page.addStyleTag()
-  const html = element.innerHTML;
+  // Meta for per-page footer
+  const meta = {
+    refno:  D.refno   || 'Proposal',
+    date:   D.qdateStr || '',
+    valid:  D.duedateStr || '',
+    coname: co.name   || 'Enermass Power Solutions Pvt. Ltd.',
+    web:    co.web    || 'www.enermass.in',
+  };
 
   try {
     const response = await fetch('http://localhost:3001/generate-pdf', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ html, filename }),
+      body:    JSON.stringify({ html: element.innerHTML, filename, meta }),
     });
 
     if (!response.ok) {
